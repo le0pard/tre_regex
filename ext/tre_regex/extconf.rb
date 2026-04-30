@@ -8,10 +8,10 @@ require 'fileutils'
 
 # Download Configuration
 github_repo = 'laurikari/tre'
-branch = 'master'
-tarball_url = "https://github.com/#{github_repo}/archive/refs/heads/#{branch}.tar.gz"
-tarball_file = File.expand_path("./tre-#{branch}.tar.gz", __dir__)
-tre_src_dir = File.expand_path("./tre-#{branch}", __dir__)
+version = '5ac28057f648debda76f9bf4d39dfdfa85b0df18'
+tarball_url = "https://github.com/#{github_repo}/archive/#{version}.tar.gz"
+tarball_file = File.expand_path("./tre-#{version}.tar.gz", __dir__)
+tre_src_dir = File.expand_path("./tre-#{version}", __dir__)
 dest_lib_dir = File.expand_path('../../lib/tre_regex/bin', __dir__)
 
 def download_file(url, limit = 10)
@@ -54,7 +54,8 @@ so_ext = RbConfig::CONFIG['SOEXT'] || RbConfig::CONFIG['DLEXT'] || (is_windows ?
 
 puts '========== Building TRE =========='
 Dir.chdir(tre_src_dir) do
-  system('./utils/autogen.sh') || raise('autogen.sh failed')
+  system('./utils/autogen.sh') || raise('autogen.sh failed') unless File.exist?('configure')
+
   system("./configure #{host_flag} --enable-shared --disable-static --disable-agrep") || raise('configure failed')
   system('make') || raise('make failed')
 end

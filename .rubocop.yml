@@ -14,7 +14,7 @@ AllCops:
   MaxFilesInCache: 8000
   UseCache: false
   Exclude:
-    - 'ext/tre_regex/tre-master/**/'
+    - 'ext/tre_regex/tre-*/**/'
     - 'pkg/**/*'
     - 'tmp/**/*'
 

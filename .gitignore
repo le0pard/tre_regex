@@ -14,8 +14,8 @@
 .DS_Store
 
 # Ignore downloaded TRE C source files
-/ext/tre_regex/tre-master/
-/ext/tre_regex/tre-master.tar.gz
+/ext/tre_regex/tre-*/
+/ext/tre_regex/tre-*.tar.gz
 
 # Ignore the FFI compiled binaries so they don't get stuck in your git history
 /lib/tre_regex/bin/*.so
