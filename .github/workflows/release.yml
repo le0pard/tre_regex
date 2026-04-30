@@ -46,7 +46,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false # no cache for native build
 
       - name: Cross-compile all native platform gems
         run: bundle exec rake-compiler-dock bash -c "bundle && bundle exec rake cross native gem"
