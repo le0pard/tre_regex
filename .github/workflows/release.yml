@@ -100,3 +100,6 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+
+      - name: Release gem
+        uses: rubygems/release-gem@v1
