@@ -3,6 +3,7 @@
 require 'bundler/gem_tasks'
 require 'rubygems/package_task'
 require 'rake/extensiontask'
+require 'rake_compiler_dock'
 
 PLATFORMS = %w[
   aarch64-linux-gnu
@@ -16,10 +17,11 @@ PLATFORMS = %w[
   x86-linux-gnu
   x86-linux-musl
 ].freeze
-
 spec = Gem::Specification.load('tre_regex.gemspec')
 
-Gem::PackageTask.new(spec)
+RakeCompilerDock.set_ruby_cc_version(spec.required_ruby_version.as_list)
+
+Gem::PackageTask.new(spec).define
 
 exttask = Rake::ExtensionTask.new do |ext|
   ext.name = 'tre_regex'
@@ -43,10 +45,22 @@ namespace 'gem' do
         sudo apt-get update -qq &&
         sudo apt-get install -yq --no-install-recommends build-essential autoconf automake libtool gettext autopoint pkg-config &&
         bundle install --local &&
-        rake native:#{platform} gem RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'
+        bundle exec rake gem:#{platform}:buildit RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'
       EOFCOMMAND
     end
+
+    namespace platform do
+      desc 'this runs in the rake-compiler-dock docker container'
+      task 'buildit' do
+        # use Task#invoke because the pkg/*gem task is defined at runtime
+        Rake::Task["native:#{platform}"].invoke
+        Rake::Task["pkg/#{rcee_precompiled_spec.full_name}-#{Gem::Platform.new(platform)}.gem"].invoke
+      end
+    end
   end
+
+  desc 'build native gem for all platforms'
+  multitask 'all' => [exttask.cross_platform, 'gem'].flatten
 end
 
 begin
@@ -67,5 +81,8 @@ desc 'Validate RBS files'
 task :rbs_validate do
   sh 'bundle exec rbs -I sig -r ffi validate'
 end
+
+desc 'Package all gems'
+task 'package' => 'gem:all'
 
 task default: %i[compile rbs_validate rubocop spec]
