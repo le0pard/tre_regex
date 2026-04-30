@@ -1,4 +1,48 @@
 module TreRegex
   VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  class Error < StandardError
+  end
+
+  # Type alias for the granular fuzzy options hash
+  type fuzzy_options = {
+    ?max_errors: Integer,
+    ?max_insertions: Integer,
+    ?max_deletions: Integer,
+    ?max_substitutions: Integer,
+    ?max_cost: Integer,
+    ?weight_insertion: Integer,
+    ?weight_deletion: Integer,
+    ?weight_substitution: Integer
+  }
+
+  # Type alias for the returned match payload
+  type match_result = {
+    match: String,
+    index: Integer,
+    end_index: Integer,
+    cost: Integer,
+    errors: {
+      insertions: Integer,
+      deletions: Integer,
+      substitutions: Integer
+    }
+  }
+
+  class Regex
+    attr_reader pattern: String
+
+    def initialize: (String pattern, ?ignore_case: bool) -> void
+
+    def exec: (String text, ?fuzzy_options options) -> match_result?
+
+    def test?: (String text, ?fuzzy_options options) -> bool
+
+    # Overloaded signature for match_all (Block vs Enumerator)
+    def match_all: (String text, ?fuzzy_options options) { (match_result) -> void } -> void
+                 | (String text, ?fuzzy_options options) -> Enumerator[match_result, void]
+
+    private
+    def self.finalize: (untyped preg_ptr) -> Proc
+  end
 end

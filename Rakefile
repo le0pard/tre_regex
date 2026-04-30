@@ -24,7 +24,7 @@ RuboCop::RakeTask.new
 
 desc 'Validate RBS files'
 task :rbs_validate do
-  sh 'bundle exec rbs -I sig -r json -r strscan validate'
+  sh 'bundle exec rbs -I sig -r ffi validate'
 end
 
 task default: %i[rbs_validate rubocop spec]

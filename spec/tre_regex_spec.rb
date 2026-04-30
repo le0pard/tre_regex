@@ -49,11 +49,11 @@ RSpec.describe TreRegex do
       end
 
       it 'respects granular fuzzy options' do
-        # We allow 1 error, but 0 substitutions. 'ipple' should fail.
-        result = regex.exec('I ate an ipple', max_errors: 1, max_substitutions: 0)
+        # We allow 1 error, but 0 substitutions AND 0 deletions. 'ipple' should fail.
+        result = regex.exec('I ate an ipple', max_errors: 1, max_substitutions: 0, max_deletions: 0)
         expect(result).to be_nil
 
-        # But a deletion should still work
+        # But a deletion should still work if we allow it
         result2 = regex.exec('I ate an aple', max_errors: 1, max_substitutions: 0)
         expect(result2[:match]).to eq('aple')
         expect(result2[:errors][:deletions]).to eq(1)
@@ -72,6 +72,25 @@ RSpec.describe TreRegex do
         # Test if the Ruby index extraction perfectly matches native Ruby slice
         extracted = unicode_text[result[:index]...result[:end_index]]
         expect(extracted).to eq('aple')
+      end
+
+      it 'calculates max_err automatically if only granular limits are provided' do
+        # We only explicitly allow 1 substitution.
+        # Under the hood, TRE needs max_err to be bounded, otherwise it defaults to INT_MAX.
+        # Our ruby wrapper should automatically set max_err to 1.
+
+        result_success = regex.exec('ipple', max_substitutions: 1)
+        expect(result_success).not_to be_nil
+        expect(result_success[:match]).to eq('ipple')
+
+        # 'bople' requires 2 substitutions ('a'->'b' and 'p'->'o').
+        # Since max_err is bounded to 1, this should successfully fail.
+        result_fail = regex.exec('bople', max_substitutions: 1)
+        expect(result_fail).to be_nil
+      end
+
+      it 'handles searching an empty string gracefully' do
+        expect(regex.exec('')).to be_nil
       end
     end
 

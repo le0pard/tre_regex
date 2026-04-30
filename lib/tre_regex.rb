@@ -7,7 +7,7 @@ require_relative 'tre_regex/version'
 module TreRegex
   class Error < StandardError; end
 
-  # FFI Native Bridge
+  # The FFI Native Bridge
   module Native
     extend FFI::Library
 
@@ -22,8 +22,8 @@ module TreRegex
 
     # Search for the compiled binary (checks both your extconf.rb path and standard path)
     search_paths = [
-      File.expand_path("tre_regex/bin/#{filename}", __dir__), # The precompiled path
-      File.expand_path(filename, __dir__)                     # The fallback path
+      File.expand_path("tre_regex/bin/#{filename}", __dir__),
+      File.expand_path(filename, __dir__)
     ]
 
     lib_path = search_paths.find { |p| File.exist?(p) }
@@ -66,21 +66,19 @@ module TreRegex
              :num_subst, :int
     end
 
-    # Bind the C Functions
     attach_function :tre_regcomp, %i[pointer string int], :int
     attach_function :tre_regfree, [:pointer], :void
-    attach_function :tre_reganexec, [:pointer, :string, :pointer, RegAParams.by_value, :int], :int
+    attach_function :tre_regaexec, [:pointer, :string, :pointer, RegAParams.by_value, :int], :int
     attach_function :tre_regaparams_default, [:pointer], :void
   end
 
-  # The User-Facing Ruby Class
+  # User-Facing Ruby Class
   class Regex
     attr_reader :pattern
 
     def initialize(pattern, ignore_case: false)
       @pattern = pattern
-
-      # Allocate a safe 256-byte buffer in C memory for the regex_t struct
+      # Allocate a safe 256-byte buffer in C memory for the regex_t struc
       @preg = FFI::MemoryPointer.new(:char, 256)
 
       flags = Native::REG_EXTENDED
@@ -102,30 +100,40 @@ module TreRegex
     end
 
     def exec(text, options = {})
-      # Initialize TRE's default parameters
       params = Native::RegAParams.new
       Native.tre_regaparams_default(params.to_ptr)
 
-      # Apply granular fuzzy options
-      params[:max_err]   = options[:max_errors] if options.key?(:max_errors)
-      params[:max_ins]   = options[:max_insertions] if options.key?(:max_insertions)
-      params[:max_del]   = options[:max_deletions] if options.key?(:max_deletions)
-      params[:max_subst] = options[:max_substitutions] if options.key?(:max_substitutions)
-      params[:max_cost]  = options[:max_cost] if options.key?(:max_cost)
-      params[:cost_ins]  = options[:weight_insertion] if options.key?(:weight_insertion)
-      params[:cost_del]  = options[:weight_deletion] if options.key?(:weight_deletion)
-      params[:cost_subst] = options[:weight_substitution] if options.key?(:weight_substitution)
+      if options.empty?
+        # Force exact match if no fuzzy options are provided
+        params[:max_err] = 0
+      else
+        params[:max_err]   = options[:max_errors] if options.key?(:max_errors)
+        params[:max_ins]   = options[:max_insertions] if options.key?(:max_insertions)
+        params[:max_del]   = options[:max_deletions] if options.key?(:max_deletions)
+        params[:max_subst] = options[:max_substitutions] if options.key?(:max_substitutions)
+        params[:max_cost]  = options[:max_cost] if options.key?(:max_cost)
 
-      # Allocate memory to receive the match data
+        # If they specified granular limits but NOT max_errors, bound max_err to the sum
+        # so it doesn't default to INT_MAX.
+        if !options.key?(:max_errors) && !options.key?(:max_cost)
+          params[:max_ins]   = options.fetch(:max_insertions, 0)
+          params[:max_del]   = options.fetch(:max_deletions, 0)
+          params[:max_subst] = options.fetch(:max_substitutions, 0)
+          params[:max_err]   = params[:max_ins] + params[:max_del] + params[:max_subst]
+        end
+
+        params[:cost_ins]  = options[:weight_insertion] if options.key?(:weight_insertion)
+        params[:cost_del]  = options[:weight_deletion] if options.key?(:weight_deletion)
+        params[:cost_subst] = options[:weight_substitution] if options.key?(:weight_substitution)
+      end
+
       pmatch = FFI::MemoryPointer.new(Native::RegMatch)
       match_data = Native::RegAMatch.new
       match_data[:nmatch] = 1
       match_data[:pmatch] = pmatch
 
       # Execute the search
-      res = Native.tre_reganexec(@preg, text, match_data, params, 0)
-
-      # Return nil if no match
+      res = Native.tre_regaexec(@preg, text, match_data, params, 0)
       return nil unless res.zero?
 
       # Extract byte offsets from C
@@ -164,15 +172,16 @@ module TreRegex
         result = exec(search_text, options)
         break unless result
 
-        # Adjust indices relative to the original full string
+        # Extract characters consumed BEFORE adjusting the offsets
+        chars_consumed = result[:end_index]
+
         result[:index] += current_char_offset
         result[:end_index] += current_char_offset
 
         yield result
 
-        # Advance the search text past the last match to prevent infinite loops
-        match_length = result[:end_index] - result[:index]
-        advance_by = match_length.zero? ? 1 : match_length
+        # Advance exactly by the characters consumed in the current search window
+        advance_by = chars_consumed.zero? ? 1 : chars_consumed
         current_char_offset += advance_by
         search_text = text[current_char_offset..] || ''
       end
