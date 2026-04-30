@@ -44,7 +44,7 @@ namespace 'gem' do
       RakeCompilerDock.sh <<-EOFCOMMAND, platform:
         sudo apt-get update -qq &&
         sudo apt-get install -yq --no-install-recommends build-essential autoconf automake libtool gettext autopoint pkg-config &&
-        bundle install --local &&
+        bundle install &&
         bundle exec rake gem:#{platform}:buildit RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'
       EOFCOMMAND
     end
