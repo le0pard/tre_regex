@@ -6,25 +6,74 @@ require 'rake/extensiontask'
 require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 
+PLATFORMS = %w[
+  aarch64-linux-gnu
+  aarch64-linux-musl
+  arm-linux-gnu
+  arm-linux-musl
+  arm64-darwin
+  x86_64-darwin
+  x86_64-linux-gnu
+  x86_64-linux-musl
+  x86-linux-gnu
+  x86-linux-musl
+].freeze
+
 spec = Gem::Specification.load('tre_regex.gemspec')
 
 Gem::PackageTask.new(spec)
 
-Rake::ExtensionTask.new('tre_regex', spec) do |ext|
+exttask = Rake::ExtensionTask.new do |ext|
+  ext.name = 'tre_regex'
   ext.ext_dir = 'ext/tre_regex'
-
+  ext.lib_dir = 'lib/tre_regex'
+  ext.gem_spec = spec
   ext.cross_compile = true
-
-  ext.cross_platform = %w[
-    x86_64-linux
-    aarch64-linux
-    x86_64-darwin
-    arm64-darwin
-    x64-mingw-ucrt
-  ]
-
+  ext.cross_platform = PLATFORMS
   ext.cross_compiling do |native_spec|
     native_spec.files += Dir['lib/tre_regex/bin/**/*']
+  end
+end
+
+desc 'Build native gem'
+task 'gem:native' do
+  require 'rake_compiler_dock'
+  sh 'bundle config set cache_all true'
+
+  PLATFORMS.each do |platform|
+    RakeCompilerDock.sh "bundle install --local && rake native:#{platform} gem", platform:
+  end
+
+  RakeCompilerDock.sh 'bundle install --local && rake java gem', rubyvm: :jruby
+rescue LoadError
+  abort 'rake_compiler_dock is required to build native gems'
+end
+
+namespace 'gem' do
+  desc 'Prepare native gem'
+  task 'prepare' do
+    require 'rake_compiler_dock'
+    require 'io/console'
+
+    sh 'bundle config set cache_all true'
+    sh 'cp ~/.gem/gem-*.pem build/gem/ || true'
+
+    RakeCompilerDock.set_ruby_cc_version(spec.required_ruby_version.as_list)
+  rescue LoadError
+    abort 'rake_compiler_dock is required for this task'
+  end
+
+  exttask.cross_platform.each do |platform|
+    desc 'Build all native binary gems in parallel'
+    multitask 'native' => platform
+
+    desc "Build the native gem for #{platform}"
+    task platform => 'prepare' do
+      RakeCompilerDock.sh(
+        "bundle install --local && rake native:#{platform} gem RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'",
+        platform:
+      )
+    end
   end
 end
 

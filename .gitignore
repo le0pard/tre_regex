@@ -21,4 +21,4 @@
 /lib/tre_regex/bin/*.so
 /lib/tre_regex/bin/*.dylib
 /lib/tre_regex/bin/*.dll
-/lib/tre_regex.*
+/lib/tre_regex/tre_regex.*
