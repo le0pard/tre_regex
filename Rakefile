@@ -54,7 +54,7 @@ namespace 'gem' do
       task 'buildit' do
         # use Task#invoke because the pkg/*gem task is defined at runtime
         Rake::Task["native:#{platform}"].invoke
-        Rake::Task["pkg/#{rcee_precompiled_spec.full_name}-#{Gem::Platform.new(platform)}.gem"].invoke
+        Rake::Task["pkg/#{spec.full_name}-#{Gem::Platform.new(platform)}.gem"].invoke
       end
     end
   end
