@@ -10,11 +10,10 @@ Gem::Specification.new do |spec|
 
   spec.summary = 'Write a short summary, because RubyGems requires one.'
   spec.description = 'Write a longer description or delete this line.'
-  spec.homepage = "https://github.com/le0pard/tre_regex"
-  spec.required_ruby_version = '>= 3.2.0'
+  spec.homepage = 'https://github.com/le0pard/tre_regex'
+  spec.required_ruby_version = '>= 3.3.0'
 
   spec.metadata['homepage_uri'] = spec.homepage
-  spec.metadata['source_code_uri'] = "https://github.com/le0pard/tre_regex"
   spec.metadata['source_code_uri'] = 'https://github.com/le0pard/tre_regex'
   spec.metadata['changelog_uri'] = 'https://github.com/le0pard/tre_regex/releases'
   spec.metadata['bug_tracker_uri'] = 'https://github.com/le0pard/tre_regex/issues'
