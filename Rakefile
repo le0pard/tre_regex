@@ -67,10 +67,12 @@ namespace 'gem' do
 
     desc "Build the native gem for #{platform}"
     task platform => 'prepare' do
-      RakeCompilerDock.sh(
-        "bundle install --local && rake native:#{platform} gem RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'",
-        platform:
-      )
+      RakeCompilerDock.sh <<-EOFCOMMAND, platform:
+        sudo apt-get update -qq &&
+        sudo apt-get install -yq --no-install-recommends build-essential autoconf automake libtool gettext autopoint pkg-config &&
+        bundle install --local &&
+        bundle install --local && rake native:#{platform} gem RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'
+      EOFCOMMAND
     end
   end
 end
