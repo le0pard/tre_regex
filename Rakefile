@@ -33,20 +33,6 @@ exttask = Rake::ExtensionTask.new do |ext|
   end
 end
 
-desc 'Build native gem'
-task 'gem:native' do
-  require 'rake_compiler_dock'
-  sh 'bundle config set cache_all true'
-
-  PLATFORMS.each do |platform|
-    RakeCompilerDock.sh "bundle install --local && rake native:#{platform} gem", platform:
-  end
-
-  RakeCompilerDock.sh 'bundle install --local && rake java gem', rubyvm: :jruby
-rescue LoadError
-  abort 'rake_compiler_dock is required to build native gems'
-end
-
 namespace 'gem' do
   desc 'Prepare native gem'
   task 'prepare' do
@@ -71,7 +57,7 @@ namespace 'gem' do
         sudo apt-get update -qq &&
         sudo apt-get install -yq --no-install-recommends build-essential autoconf automake libtool gettext autopoint pkg-config &&
         bundle install --local &&
-        bundle install --local && rake native:#{platform} gem RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'
+        rake native:#{platform} gem RUBY_CC_VERSION='#{ENV.fetch('RUBY_CC_VERSION', nil)}'
       EOFCOMMAND
     end
   end
