@@ -26,14 +26,12 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
-  File.basename(__FILE__)
 
-  spec.files = Dir['lib/**/*.rb']
-
-  if spec.platform == Gem::Platform::RUBY
-    spec.files += Dir['ext/**/*.{c,h,in,rb}']
-    spec.extensions = ['ext/tre_regex/extconf.rb']
-  end
+  spec.files = Dir['lib/**/*.rb'] + [
+    'ext/tre_regex/extconf.rb',
+    'ext/tre_regex/tre_regex.c'
+  ]
+  spec.extensions = ['ext/tre_regex/extconf.rb']
 
   spec.bindir = 'exe'
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
