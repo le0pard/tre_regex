@@ -3,6 +3,7 @@
 require 'mkmf'
 require 'rbconfig'
 require 'open-uri'
+require 'net/http'
 require 'fileutils'
 
 # Download Configuration
