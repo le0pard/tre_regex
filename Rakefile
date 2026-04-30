@@ -8,6 +8,8 @@ require 'rubocop/rake_task'
 
 spec = Gem::Specification.load('tre_regex.gemspec')
 
+Gem::PackageTask.new(spec)
+
 Rake::ExtensionTask.new('tre_regex', spec) do |ext|
   ext.ext_dir = 'ext/tre_regex'
 

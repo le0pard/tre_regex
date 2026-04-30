@@ -54,7 +54,7 @@ jobs:
 
       - name: Cross-compile all native platform gems
         run: |
-          bundle exec rake-compiler-dock bash -c "bundle && bundle exec rake cross native gem"
+          bundle exec rake-compiler-dock bash -c "bundle && bundle exec rake cross native package"
 
       - name: Upload native gem artifacts
         uses: actions/upload-artifact@v7
