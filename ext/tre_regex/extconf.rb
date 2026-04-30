@@ -68,18 +68,30 @@ end
 puts '========== Staging Shared Library for FFI =========='
 FileUtils.mkdir_p(dest_lib_dir)
 
-# Grab the compiled library and rename it to a strict, predictable filename
-if is_windows
-  src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/*.dll").first
-  FileUtils.cp(src_lib, File.join(dest_lib_dir, 'tre.dll')) if src_lib
-elsif is_darwin
-  src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/*.dylib").first
-  FileUtils.cp(src_lib, File.join(dest_lib_dir, 'libtre.dylib')) if src_lib
-else
-  src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/libtre.so*").find { |f| File.file?(f) && !File.symlink?(f) }
-  src_lib ||= Dir.glob("#{tre_src_dir}/lib/.libs/*.so").first # Fallback
+# Find the REAL physical file, strictly ignoring symlinks and static (.a) archives
+src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/*").find do |f|
+  (f.include?('.so') || f.include?('.dylib') || f.end_with?('.dll')) &&
+    !f.end_with?('.a') &&
+    !File.symlink?(f)
+end
 
-  FileUtils.cp(src_lib, File.join(dest_lib_dir, 'libtre.so')) if src_lib
+# Fallback just in case libtool behaved differently
+src_lib ||= Dir.glob("#{tre_src_dir}/lib/.libs/*").find do |f|
+  (f.include?('.so') || f.include?('.dylib') || f.end_with?('.dll')) && !f.end_with?('.a')
+end
+
+if src_lib
+  # Determine the clean target filename based on the OS
+  dest_name = if is_windows
+                'tre.dll'
+              elsif is_darwin
+                'libtre.dylib'
+              else
+                'libtre.so'
+              end
+
+  # Use File.realpath to guarantee we are copying raw bytes
+  FileUtils.cp(File.realpath(src_lib), File.join(dest_lib_dir, dest_name))
 end
 
 # Create a standard dummy ruby extension to satisfy rake-compiler completely
