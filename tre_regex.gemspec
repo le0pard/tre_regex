@@ -8,8 +8,12 @@ Gem::Specification.new do |spec|
   spec.authors = ['Oleksii Vasyliev']
   spec.email = ['leopard.not.a@gmail.com']
 
-  spec.summary = 'Write a short summary, because RubyGems requires one.'
-  spec.description = 'Write a longer description or delete this line.'
+  spec.summary = 'A fast Ruby FFI wrapper for the TRE approximate regex matching library.'
+  spec.description = [
+    'TreRegex provides a high-performance Ruby interface to the TRE C library using FFI.',
+    'It brings robust approximate (fuzzy) regular expression matching to Ruby, featuring',
+    'multi-byte Unicode string safety, granular error limits, and precompiled cross-platform native binaries'
+  ].join(' ')
   spec.homepage = 'https://github.com/le0pard/tre_regex'
   spec.required_ruby_version = '>= 3.3.0'
 
