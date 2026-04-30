@@ -2,6 +2,8 @@
 
 require 'bundler/gem_tasks'
 require 'rubygems/package_task'
+require 'rspec/core/rake_task'
+require 'rubocop/rake_task'
 require 'rake/extensiontask'
 require 'rake_compiler_dock'
 
@@ -45,8 +47,6 @@ namespace 'gem' do
   exttask.cross_platform.each do |platform|
     desc "Build the native gem for #{platform}"
     task platform do
-      require 'rake_compiler_dock'
-
       RakeCompilerDock.sh <<-EOFCOMMAND, platform:
         sudo apt-get update -qq &&
         sudo apt-get install -yq --no-install-recommends build-essential autoconf automake libtool gettext autopoint pkg-config &&
@@ -69,19 +69,8 @@ namespace 'gem' do
   multitask 'all' => [exttask.cross_platform, 'gem'].flatten
 end
 
-begin
-  require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec)
-rescue LoadError
-  # skip
-end
-
-begin
-  require 'rubocop/rake_task'
-  RuboCop::RakeTask.new
-rescue LoadError
-  # skip
-end
+RSpec::Core::RakeTask.new(:spec)
+RuboCop::RakeTask.new
 
 desc 'Validate RBS files'
 task :rbs_validate do
