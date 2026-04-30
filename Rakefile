@@ -1,0 +1,30 @@
+# frozen_string_literal: true
+
+require 'bundler/gem_tasks'
+require 'rake/extensiontask'
+require 'rspec/core/rake_task'
+require 'rubocop/rake_task'
+
+Rake::ExtensionTask.new('tre_regex') do |ext|
+  ext.ext_dir = 'ext/tre_regex'
+
+  ext.cross_compile = true
+
+  ext.cross_platform = %w[
+    x86_64-linux
+    aarch64-linux
+    x86_64-darwin
+    arm64-darwin
+    x64-mingw-ucrt
+  ]
+end
+
+RSpec::Core::RakeTask.new(:spec)
+RuboCop::RakeTask.new
+
+desc 'Validate RBS files'
+task :rbs_validate do
+  sh 'bundle exec rbs -I sig -r json -r strscan validate'
+end
+
+task default: %i[rbs_validate rubocop spec]
