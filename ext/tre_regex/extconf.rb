@@ -14,18 +14,37 @@ tarball_file = File.expand_path("./tre-#{branch}.tar.gz", __dir__)
 tre_src_dir = File.expand_path("./tre-#{branch}", __dir__)
 dest_lib_dir = File.expand_path('../../lib/tre_regex/bin', __dir__)
 
+def download_file(url, limit = 10)
+  raise 'Too many redirects' if limit.zero?
+
+  uri = URI(url)
+  response = Net::HTTP.get_response(uri)
+
+  case response
+  when Net::HTTPSuccess
+    response.body
+  when Net::HTTPRedirection
+    location = response['location']
+    puts "Following redirect to #{location}..."
+    download_file(location, limit - 1)
+  else
+    raise "Download failed: #{response.code} #{response.message}"
+  end
+end
+
 # Automatically Download and Extract
 unless Dir.exist?(tre_src_dir)
   puts '========== Downloading TRE from GitHub =========='
-  uri = URI(tarball_url)
-  Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-    request = Net::HTTP::Get.new(uri)
-    http.request(request) do |response|
-      File.binwrite(tarball_file, response.body)
-    end
+  begin
+    content = download_file(tarball_url)
+    File.binwrite(tarball_file, content)
+  rescue StandardError => e
+    abort "Error: #{e.message}"
   end
+
   puts '========== Extracting TRE Source =========='
-  system("tar -xzf #{tarball_file} -C #{__dir__}")
+  # Ensure we use -z for gzip
+  system("tar -xzf #{tarball_file} -C #{__dir__}") || abort('Extraction failed')
 end
 
 # Build TRE synchronously using Ruby
