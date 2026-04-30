@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-
-
 RSpec.describe TreRegex do
   it 'has a version number' do
     expect(TreRegex::VERSION).not_to be_nil
@@ -30,7 +28,7 @@ RSpec.describe TreRegex do
         expect(regex.exec('banana')).to be_nil
       end
 
-      it 'finds an exact match' do
+      it 'finds an exact match', :aggregate_failures do
         result = regex.exec('I ate an apple today')
 
         expect(result).not_to be_nil
@@ -40,7 +38,7 @@ RSpec.describe TreRegex do
         expect(result[:cost]).to eq(0)
       end
 
-      it 'finds a fuzzy match with substitutions' do
+      it 'finds a fuzzy match with substitutions', :aggregate_failures do
         # 'aple' has 1 deletion. 'appple' has 1 insertion. 'ipple' has 1 substitution.
         result = regex.exec('I ate an ipple today', max_errors: 1)
 
@@ -50,7 +48,7 @@ RSpec.describe TreRegex do
         expect(result[:errors][:substitutions]).to eq(1)
       end
 
-      it 'respects granular fuzzy options' do
+      it 'respects granular fuzzy options', :aggregate_failures do
         # We allow 1 error, but 0 substitutions AND 0 deletions. 'ipple' should fail.
         result = regex.exec('I ate an ipple', max_errors: 1, max_substitutions: 0, max_deletions: 0)
         expect(result).to be_nil
@@ -61,7 +59,7 @@ RSpec.describe TreRegex do
         expect(result2[:errors][:deletions]).to eq(1)
       end
 
-      it 'handles massive Unicode characters correctly (byte-to-char index mapping)' do
+      it 'handles massive Unicode characters correctly (byte-to-char index mapping)', :aggregate_failures do
         # 👨‍👩‍👧‍👦 is 11 bytes in UTF-8, but 1 character in Ruby
         # 🚀 is 4 bytes in UTF-8, but 1 character in Ruby
         unicode_text = '👨‍👩‍👧‍👦 loves 🚀, but hates aple!'
@@ -76,7 +74,7 @@ RSpec.describe TreRegex do
         expect(extracted).to eq('aple')
       end
 
-      it 'calculates max_err automatically if only granular limits are provided' do
+      it 'calculates max_err automatically if only granular limits are provided', :aggregate_failures do
         # We only explicitly allow 1 substitution.
         # Under the hood, TRE needs max_err to be bounded, otherwise it defaults to INT_MAX.
         # Our ruby wrapper should automatically set max_err to 1.
@@ -116,7 +114,7 @@ RSpec.describe TreRegex do
         expect(enum).to be_a(Enumerator)
       end
 
-      it 'yields multiple exact matches' do
+      it 'yields multiple exact matches', :aggregate_failures do
         results = []
         regex.match_all('cat, dog, cat') { |m| results << m }
 
@@ -125,7 +123,7 @@ RSpec.describe TreRegex do
         expect(results[1][:index]).to eq(10)
       end
 
-      it 'yields multiple fuzzy matches' do
+      it 'yields multiple fuzzy matches', :aggregate_failures do
         results = regex.match_all('cat, cot, cut', max_errors: 1).to_a
 
         expect(results.size).to eq(3)
@@ -137,18 +135,18 @@ RSpec.describe TreRegex do
 
     describe 'Memory Management' do
       it 'handles high volume creation and garbage collection without leaking' do
-        expect {
+        expect do
           5_000.times do
-            regex = TreRegex::Regex.new('apple|orange|banana')
+            regex = described_class.new('apple|orange|banana')
             regex.exec('I ate an apple')
           end
           GC.start
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       it 'handles very long input strings without buffer overflow' do
         long_string = 'a' * 1_000_000
-        regex = TreRegex::Regex.new('a+')
+        regex = described_class.new('a+')
 
         result = regex.exec(long_string)
         expect(result[:match].length).to eq(1_000_000)
@@ -156,10 +154,10 @@ RSpec.describe TreRegex do
     end
 
     describe 'Loop Safety' do
-      it 'prevents infinite loops on zero-width matches' do
+      it 'prevents infinite loops on zero-width matches', :aggregate_failures do
         # The regex 'a*' can match an empty string between characters.
         # Without proper incrementing, match_all would hang here.
-        regex = TreRegex::Regex.new('a*')
+        regex = described_class.new('a*')
         results = []
 
         # Timeout safety to catch infinite loops during the test run
@@ -172,7 +170,7 @@ RSpec.describe TreRegex do
       end
 
       it 'correctly advances when matches are adjacent' do
-        regex = TreRegex::Regex.new('aa')
+        regex = described_class.new('aa')
         results = regex.match_all('aaaa').to_a
 
         # Should find 'aa' at index 0 and 'aa' at index 2

@@ -40,12 +40,13 @@ module TreRegex
     REG_NEWLINE  = 4
     REG_NOSUB    = 8
 
-    # C-Struct Memory Layouts
+    # Memory layout for TRE match offsets
     class RegMatch < FFI::Struct
       layout :rm_so, :int,
              :rm_eo, :int
     end
 
+    # Memory layout for TRE approximate matching parameters
     class RegAParams < FFI::Struct
       layout :cost_ins,   :int,
              :cost_del,   :int,
@@ -57,6 +58,7 @@ module TreRegex
              :max_err,    :int
     end
 
+    # Memory layout for TRE approximate match results
     class RegAMatch < FFI::Struct
       layout :nmatch,    :size_t,
              :pmatch,    :pointer,
@@ -181,13 +183,13 @@ module TreRegex
 
         # Force advancement by at least 1 if a zero-width match occurred
         # to prevent the infinite loop while still allowing the <= check.
-        advance_by = (chars_consumed == 0) ? 1 : chars_consumed
+        advance_by = chars_consumed.zero? ? 1 : chars_consumed
         current_char_offset += advance_by
 
         # Break if we've advanced past the end
         break if current_char_offset > text.length
 
-        search_text = text[current_char_offset..-1] || ""
+        search_text = text[current_char_offset..] || ''
       end
     end
   end

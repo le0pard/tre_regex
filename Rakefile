@@ -30,4 +30,4 @@ task :rbs_validate do
   sh 'bundle exec rbs -I sig -r ffi validate'
 end
 
-task default: %i[rbs_validate rubocop spec]
+task default: %i[compile rbs_validate rubocop spec]

@@ -6,7 +6,9 @@ AllCops:
   NewCops: enable
   SuggestExtensions: false
   Exclude:
-    - 'ext/tre_regex/tre-master/**'
+    - 'ext/tre_regex/tre-master/**/'
+    - 'pkg/**/*'
+    - 'tmp/**/*'
 
 Naming/PredicateMethod:
   Enabled: false
@@ -42,3 +44,6 @@ Style/HashSyntax:
 
 RSpec/NamedSubject:
   EnforcedStyle: named_only
+
+RSpec/ExampleLength:
+  Max: 10

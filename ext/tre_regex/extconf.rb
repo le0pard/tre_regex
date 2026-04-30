@@ -16,8 +16,12 @@ dest_lib_dir = File.expand_path('../../lib/tre_regex/bin', __dir__)
 # Automatically Download and Extract
 unless Dir.exist?(tre_src_dir)
   puts '========== Downloading TRE from GitHub =========='
-  URI.open(tarball_url) do |remote|
-    File.binwrite(tarball_file, remote.read)
+  uri = URI(tarball_url)
+  Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+    request = Net::HTTP::Get.new(uri)
+    http.request(request) do |response|
+      File.binwrite(tarball_file, response.body)
+    end
   end
   puts '========== Extracting TRE Source =========='
   system("tar -xzf #{tarball_file} -C #{__dir__}")
