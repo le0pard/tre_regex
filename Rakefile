@@ -34,23 +34,7 @@ exttask = Rake::ExtensionTask.new do |ext|
 end
 
 namespace 'gem' do
-  desc 'Prepare native gem'
-  task 'prepare' do
-    require 'rake_compiler_dock'
-    require 'io/console'
-
-    sh 'bundle config set cache_all true'
-    sh 'cp ~/.gem/gem-*.pem build/gem/ || true'
-
-    RakeCompilerDock.set_ruby_cc_version(spec.required_ruby_version.as_list)
-  rescue LoadError
-    abort 'rake_compiler_dock is required for this task'
-  end
-
   exttask.cross_platform.each do |platform|
-    desc 'Build all native binary gems in parallel'
-    multitask 'native' => platform
-
     desc "Build the native gem for #{platform}"
     task platform => 'prepare' do
       RakeCompilerDock.sh <<-EOFCOMMAND, platform:

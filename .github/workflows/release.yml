@@ -35,10 +35,24 @@ jobs:
           retention-days: 1
 
   build_native:
-    name: Build Native Gems
+    name: Build Native (${{ matrix.platform }})
     runs-on: ubuntu-latest
     environment:
       name: production
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - aarch64-linux-gnu
+          - aarch64-linux-musl
+          - arm-linux-gnu
+          - arm-linux-musl
+          - arm64-darwin
+          - x86_64-darwin
+          - x86_64-linux-gnu
+          - x86_64-linux-musl
+          - x86-linux-gnu
+          - x86-linux-musl
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -50,13 +64,13 @@ jobs:
 
       - name: Cross-compile all native platform gems
         run: |
-          bundle exec rake gem:native
+          bundle exec rake gem:${{ matrix.platform }}
 
       - name: Upload native gem artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: gem-native
-          path: pkg/*-*.gem
+          name: gem-native-${{ matrix.platform }}
+          path: pkg/*-${{ matrix.platform }}.gem
           retention-days: 1
 
   publish:
