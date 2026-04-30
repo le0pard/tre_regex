@@ -98,4 +98,7 @@ jobs:
 
       - name: Publish gems 🚀
         run: |
-          gem push pkg/*.gem
+          for gem_file in pkg/*.gem; do
+            echo "Pushing $gem_file..."
+            gem push "$gem_file"
+          done
