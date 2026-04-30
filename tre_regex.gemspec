@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors = ['Oleksii Vasyliev']
   spec.email = ['leopard.not.a@gmail.com']
 
-  spec.summary = 'TODO: Write a short summary, because RubyGems requires one.'
-  spec.description = 'TODO: Write a longer description or delete this line.'
+  spec.summary = 'Write a short summary, because RubyGems requires one.'
+  spec.description = 'Write a longer description or delete this line.'
   spec.homepage = "https://github.com/le0pard/tre_regex"
   spec.required_ruby_version = '>= 3.2.0'
 
