@@ -30,7 +30,6 @@ Gem::Specification.new do |spec|
 
   spec.files = %w[
     lib/**/*.rb
-    lib/tre_regex/bin/**/*
     ext/tre_regex/extconf.rb
     ext/tre_regex/tre_regex.c
   ].flat_map { |p| Dir[p] }

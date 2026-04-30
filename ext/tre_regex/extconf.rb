@@ -6,6 +6,9 @@ require 'open-uri'
 require 'net/http'
 require 'fileutils'
 
+is_windows = RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
+is_darwin  = RbConfig::CONFIG['host_os'].include?('darwin')
+
 root_dir = File.expand_path(__dir__)
 root_dir = File.dirname(root_dir) until Dir.exist?(File.join(root_dir, 'lib')) || root_dir == '/'
 
@@ -52,8 +55,7 @@ end
 
 # Build TRE synchronously using Ruby
 host_flag = enable_config('cross-build') ? "--host=#{RbConfig::CONFIG['host']} " : ''
-is_windows = RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
-so_ext = RbConfig::CONFIG['SOEXT'] || RbConfig::CONFIG['DLEXT'] || (is_windows ? 'dll' : 'so')
+RbConfig::CONFIG['SOEXT'] || RbConfig::CONFIG['DLEXT'] || (is_windows ? 'dll' : 'so')
 
 puts '========== Building TRE =========='
 Dir.chdir(tre_src_dir) do
@@ -66,13 +68,19 @@ end
 puts '========== Staging Shared Library for FFI =========='
 FileUtils.mkdir_p(dest_lib_dir)
 
-# Safely copy the compiled binaries
-libs = if is_windows
-         Dir.glob("#{tre_src_dir}/lib/.libs/*.dll")
-       else
-         Dir.glob("#{tre_src_dir}/lib/.libs/libtre.#{so_ext}*")
-       end
-FileUtils.cp(libs, dest_lib_dir) if libs.any?
+# Grab the compiled library and rename it to a strict, predictable filename
+if is_windows
+  src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/*.dll").first
+  FileUtils.cp(src_lib, File.join(dest_lib_dir, 'tre.dll')) if src_lib
+elsif is_darwin
+  src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/*.dylib").first
+  FileUtils.cp(src_lib, File.join(dest_lib_dir, 'libtre.dylib')) if src_lib
+else
+  src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/libtre.so*").find { |f| File.file?(f) && !File.symlink?(f) }
+  src_lib ||= Dir.glob("#{tre_src_dir}/lib/.libs/*.so").first # Fallback
+
+  FileUtils.cp(src_lib, File.join(dest_lib_dir, 'libtre.so')) if src_lib
+end
 
 # Create a standard dummy ruby extension to satisfy rake-compiler completely
 create_makefile('tre_regex')

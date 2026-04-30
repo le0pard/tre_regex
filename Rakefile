@@ -31,7 +31,13 @@ exttask = Rake::ExtensionTask.new do |ext|
   ext.cross_compile = true
   ext.cross_platform = PLATFORMS
   ext.cross_compiling do |native_spec|
-    native_spec.files += Dir['lib/tre_regex/bin/**/*']
+    if native_spec.platform.to_s.include?('darwin')
+      native_spec.files << 'lib/tre_regex/bin/libtre.dylib'
+    elsif native_spec.platform.to_s.include?('mingw') || native_spec.platform.to_s.include?('mswin')
+      native_spec.files << 'lib/tre_regex/bin/tre.dll'
+    else
+      native_spec.files << 'lib/tre_regex/bin/libtre.so'
+    end
   end
 end
 
