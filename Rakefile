@@ -36,7 +36,7 @@ end
 namespace 'gem' do
   exttask.cross_platform.each do |platform|
     desc "Build the native gem for #{platform}"
-    task platform => 'prepare' do
+    task platform do
       RakeCompilerDock.sh <<-EOFCOMMAND, platform:
         sudo apt-get update -qq &&
         sudo apt-get install -yq --no-install-recommends build-essential autoconf automake libtool gettext autopoint pkg-config &&
