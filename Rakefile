@@ -17,7 +17,6 @@ PLATFORMS = %w[
   x64-mingw-ucrt
   x86-linux-gnu
   x86-linux-musl
-  x86-mingw32
   x86_64-darwin
   x86_64-linux-gnu
   x86_64-linux-musl
