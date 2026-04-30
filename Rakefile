@@ -5,8 +5,11 @@ require 'rake/extensiontask'
 require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 
-Rake::ExtensionTask.new('tre_regex') do |ext|
+spec = Gem::Specification.load('tre_regex.gemspec')
+
+Rake::ExtensionTask.new('tre_regex', spec) do |ext|
   ext.ext_dir = 'ext/tre_regex'
+  ext.lib_dir = 'lib/tre_regex'
 
   ext.cross_compile = true
 
