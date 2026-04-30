@@ -17,8 +17,8 @@
 /ext/tre_regex/tre-*/
 /ext/tre_regex/tre-*.tar.gz
 
-# Ignore the FFI compiled binaries so they don't get stuck in your git history
+# Ignore the FFI compiled binaries
 /lib/tre_regex/bin/*.so
 /lib/tre_regex/bin/*.dylib
 /lib/tre_regex/bin/*.dll
-/lib/tre_regex/tre_regex.*
+/lib/tre_regex.*
