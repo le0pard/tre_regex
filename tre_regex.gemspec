@@ -31,12 +31,8 @@ Gem::Specification.new do |spec|
   spec.files = Dir['lib/**/*.rb']
 
   if spec.platform == Gem::Platform::RUBY
-    # If building the source gem, include the C source and the extconf.rb
     spec.files += Dir['ext/**/*.{c,h,in,rb}']
     spec.extensions = ['ext/tre_regex/extconf.rb']
-  else
-    # If building a platform gem (Linux/Mac/Windows), include the compiled binaries
-    spec.files += Dir['lib/**/*.{so,dylib,dll}']
   end
 
   spec.bindir = 'exe'

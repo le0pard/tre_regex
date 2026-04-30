@@ -6,13 +6,16 @@ require 'open-uri'
 require 'net/http'
 require 'fileutils'
 
+root_dir = File.expand_path(__dir__)
+root_dir = File.dirname(root_dir) until Dir.exist?(File.join(root_dir, 'lib')) || root_dir == '/'
+
 # Download Configuration
 github_repo = 'laurikari/tre'
 version = '5ac28057f648debda76f9bf4d39dfdfa85b0df18'
 tarball_url = "https://github.com/#{github_repo}/archive/#{version}.tar.gz"
 tarball_file = File.expand_path("./tre-#{version}.tar.gz", __dir__)
 tre_src_dir = File.expand_path("./tre-#{version}", __dir__)
-dest_lib_dir = File.expand_path('../../lib/tre_regex/bin', __dir__)
+dest_lib_dir = File.join(root_dir, 'lib', 'tre_regex', 'bin')
 
 def download_file(url, limit = 10)
   raise 'Too many redirects' if limit.zero?

@@ -20,6 +20,10 @@ Rake::ExtensionTask.new('tre_regex', spec) do |ext|
     arm64-darwin
     x64-mingw-ucrt
   ]
+
+  ext.cross_compiling do |native_spec|
+    native_spec.files += Dir['lib/tre_regex/bin/**/*']
+  end
 end
 
 RSpec::Core::RakeTask.new(:spec)
