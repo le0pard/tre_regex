@@ -1,0 +1,72 @@
+name: Push gem to RubyGems.org
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build_source:
+    name: Build Source Gem
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Build standard source gem
+        run: bundle exec rake build
+
+      - name: Upload source gem artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: gem-source
+          path: pkg/tre_regex-*.gem
+          retention-days: 1
+
+  build_native:
+    name: Build Native Gems
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Cross-compile all native platform gems
+        run: bundle exec rake-compiler-dock bash -c "bundle && bundle exec rake cross native gem"
+
+      - name: Upload native gem artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: gem-native
+          path: pkg/*-*.gem
+          retention-days: 1
+
+  publish:
+    name: Publish to RubyGems
+    needs: [build_source, build_native]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all gem artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: pkg
+          pattern: gem-*
+          merge-multiple: true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
