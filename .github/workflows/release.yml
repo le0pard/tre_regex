@@ -48,6 +48,10 @@ jobs:
         with:
           bundler-cache: false # no cache for native build
 
+      - name: Install bundler
+        run: |
+          bundle install
+
       - name: Cross-compile all native platform gems
         run: |
           bundle exec rake-compiler-dock bash -c "bundle && bundle exec rake cross native gem"
