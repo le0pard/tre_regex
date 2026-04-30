@@ -7,6 +7,7 @@ Gem::Specification.new do |spec|
   spec.version = TreRegex::VERSION
   spec.authors = ['Oleksii Vasyliev']
   spec.email = ['leopard.not.a@gmail.com']
+  spec.license = 'MIT'
 
   spec.summary = 'A fast Ruby FFI wrapper for the TRE approximate regex matching library.'
   spec.description = [
@@ -27,10 +28,12 @@ Gem::Specification.new do |spec|
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
 
-  spec.files = Dir['lib/**/*.rb'] + [
-    'ext/tre_regex/extconf.rb',
-    'ext/tre_regex/tre_regex.c'
-  ]
+  spec.files = %w[
+    lib/**/*.rb
+    lib/tre_regex/bin/**/*
+    ext/tre_regex/extconf.rb
+    ext/tre_regex/tre_regex.c
+  ].flat_map { |p| Dir[p] }
   spec.extensions = ['ext/tre_regex/extconf.rb']
 
   spec.bindir = 'exe'

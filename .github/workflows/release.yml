@@ -13,6 +13,8 @@ jobs:
   build_source:
     name: Build Source Gem
     runs-on: ubuntu-latest
+    environment:
+      name: production
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -35,6 +37,8 @@ jobs:
   build_native:
     name: Build Native Gems
     runs-on: ubuntu-latest
+    environment:
+      name: production
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -58,6 +62,8 @@ jobs:
     name: Publish to RubyGems
     needs: [build_source, build_native]
     runs-on: ubuntu-latest
+    environment:
+      name: production
     steps:
       - name: Download all gem artifacts
         uses: actions/download-artifact@v7
