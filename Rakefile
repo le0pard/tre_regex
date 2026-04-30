@@ -3,8 +3,6 @@
 require 'bundler/gem_tasks'
 require 'rubygems/package_task'
 require 'rake/extensiontask'
-require 'rspec/core/rake_task'
-require 'rubocop/rake_task'
 
 PLATFORMS = %w[
   aarch64-linux-gnu
@@ -77,8 +75,19 @@ namespace 'gem' do
   end
 end
 
-RSpec::Core::RakeTask.new(:spec)
-RuboCop::RakeTask.new
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:spec)
+rescue LoadError
+  # skip
+end
+
+begin
+  require 'rubocop/rake_task'
+  RuboCop::RakeTask.new
+rescue LoadError
+  # skip
+end
 
 desc 'Validate RBS files'
 task :rbs_validate do
