@@ -60,10 +60,11 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false # Cannot use cache
 
       - name: Cross-compile all native platform gems
         run: |
+          bundle install
           bundle exec rake gem:${{ matrix.platform }}
 
       - name: Upload native gem artifacts
