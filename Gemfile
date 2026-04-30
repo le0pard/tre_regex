@@ -7,8 +7,8 @@ gemspec
 
 gem 'irb', '~> 1'
 gem 'rake', '~> 13'
-gem 'rake-compiler', '~> 1.2'
-gem 'rake-compiler-dock', '~> 1.3'
+gem 'rake-compiler', '~> 1.3'
+gem 'rake-compiler-dock', '~> 1.12'
 gem 'rbs', '~> 4', require: false
 gem 'rspec', '~> 3'
 gem 'rubocop', '~> 1.82'

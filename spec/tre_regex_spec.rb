@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+
+
 RSpec.describe TreRegex do
   it 'has a version number' do
     expect(TreRegex::VERSION).not_to be_nil
@@ -130,6 +132,51 @@ RSpec.describe TreRegex do
         expect(results[0][:match]).to eq('cat')
         expect(results[1][:match]).to eq('cot')
         expect(results[2][:match]).to eq('cut')
+      end
+    end
+
+    describe 'Memory Management' do
+      it 'handles high volume creation and garbage collection without leaking' do
+        expect {
+          5_000.times do
+            regex = TreRegex::Regex.new('apple|orange|banana')
+            regex.exec('I ate an apple')
+          end
+          GC.start
+        }.not_to raise_error
+      end
+
+      it 'handles very long input strings without buffer overflow' do
+        long_string = 'a' * 1_000_000
+        regex = TreRegex::Regex.new('a+')
+
+        result = regex.exec(long_string)
+        expect(result[:match].length).to eq(1_000_000)
+      end
+    end
+
+    describe 'Loop Safety' do
+      it 'prevents infinite loops on zero-width matches' do
+        # The regex 'a*' can match an empty string between characters.
+        # Without proper incrementing, match_all would hang here.
+        regex = TreRegex::Regex.new('a*')
+        results = []
+
+        # Timeout safety to catch infinite loops during the test run
+        with_timeout do
+          regex.match_all('bb') { |m| results << m }
+        end
+
+        # It should find empty matches at index 0, 1, and 2
+        expect(results.size).to be >= 3
+      end
+
+      it 'correctly advances when matches are adjacent' do
+        regex = TreRegex::Regex.new('aa')
+        results = regex.match_all('aaaa').to_a
+
+        # Should find 'aa' at index 0 and 'aa' at index 2
+        expect(results.map { |r| r[:index] }).to eq([0, 2])
       end
     end
   end

@@ -168,11 +168,10 @@ module TreRegex
       current_char_offset = 0
       search_text = text
 
-      while current_char_offset < text.length
+      while current_char_offset <= text.length
         result = exec(search_text, options)
         break unless result
 
-        # Extract characters consumed BEFORE adjusting the offsets
         chars_consumed = result[:end_index]
 
         result[:index] += current_char_offset
@@ -180,10 +179,15 @@ module TreRegex
 
         yield result
 
-        # Advance exactly by the characters consumed in the current search window
-        advance_by = chars_consumed.zero? ? 1 : chars_consumed
+        # Force advancement by at least 1 if a zero-width match occurred
+        # to prevent the infinite loop while still allowing the <= check.
+        advance_by = (chars_consumed == 0) ? 1 : chars_consumed
         current_char_offset += advance_by
-        search_text = text[current_char_offset..] || ''
+
+        # Break if we've advanced past the end
+        break if current_char_offset > text.length
+
+        search_text = text[current_char_offset..-1] || ""
       end
     end
   end

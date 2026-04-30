@@ -6,7 +6,7 @@ AllCops:
   NewCops: enable
   SuggestExtensions: false
   Exclude:
-    - 'ext/**/*'
+    - 'ext/tre_regex/tre-master/**'
 
 Naming/PredicateMethod:
   Enabled: false
