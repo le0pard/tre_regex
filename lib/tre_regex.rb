@@ -102,62 +102,12 @@ module TreRegex
     end
 
     def exec(text, options = {})
-      params = Native::RegAParams.new
-      Native.tre_regaparams_default(params.to_ptr)
-
-      if options.empty?
-        # Force exact match if no fuzzy options are provided
-        params[:max_err] = 0
-      else
-        params[:max_err]   = options[:max_errors] if options.key?(:max_errors)
-        params[:max_ins]   = options[:max_insertions] if options.key?(:max_insertions)
-        params[:max_del]   = options[:max_deletions] if options.key?(:max_deletions)
-        params[:max_subst] = options[:max_substitutions] if options.key?(:max_substitutions)
-        params[:max_cost]  = options[:max_cost] if options.key?(:max_cost)
-
-        # If they specified granular limits but NOT max_errors, bound max_err to the sum
-        # so it doesn't default to INT_MAX.
-        if !options.key?(:max_errors) && !options.key?(:max_cost)
-          params[:max_ins]   = options.fetch(:max_insertions, 0)
-          params[:max_del]   = options.fetch(:max_deletions, 0)
-          params[:max_subst] = options.fetch(:max_substitutions, 0)
-          params[:max_err]   = params[:max_ins] + params[:max_del] + params[:max_subst]
-        end
-
-        params[:cost_ins]  = options[:weight_insertion] if options.key?(:weight_insertion)
-        params[:cost_del]  = options[:weight_deletion] if options.key?(:weight_deletion)
-        params[:cost_subst] = options[:weight_substitution] if options.key?(:weight_substitution)
-      end
-
+      params = build_params(options)
       pmatch = FFI::MemoryPointer.new(Native::RegMatch)
-      match_data = Native::RegAMatch.new
-      match_data[:nmatch] = 1
-      match_data[:pmatch] = pmatch
+      match_data = prepare_match_data(pmatch)
 
-      # Execute the search
       res = Native.tre_regaexec(@preg, text, match_data, params, 0)
-      return nil unless res.zero?
-
-      # Extract byte offsets from C
-      rm = Native::RegMatch.new(pmatch)
-      byte_start = rm[:rm_so]
-      byte_end = rm[:rm_eo]
-
-      # Unicode Safety: Convert C byte-offsets back to Ruby character indices
-      byte_match = text.byteslice(byte_start...byte_end)
-      char_index = text.byteslice(0...byte_start).length
-
-      {
-        match: byte_match,
-        index: char_index,
-        end_index: char_index + byte_match.length,
-        cost: match_data[:cost],
-        errors: {
-          insertions: match_data[:num_ins],
-          deletions: match_data[:num_del],
-          substitutions: match_data[:num_subst]
-        }
-      }
+      res.zero? ? parse_result(text, match_data, pmatch) : nil
     end
 
     def test?(text, options = {})
@@ -167,30 +117,75 @@ module TreRegex
     def match_all(text, options = {})
       return enum_for(:match_all, text, options) unless block_given?
 
-      current_char_offset = 0
-      search_text = text
-
-      while current_char_offset <= text.length
-        result = exec(search_text, options)
+      offset = 0
+      while offset <= text.length
+        result = exec(text[offset..] || '', options)
         break unless result
 
-        chars_consumed = result[:end_index]
-
-        result[:index] += current_char_offset
-        result[:end_index] += current_char_offset
-
+        result[:index] += offset
+        result[:end_index] += offset
         yield result
 
-        # Force advancement by at least 1 if a zero-width match occurred
-        # to prevent the infinite loop while still allowing the <= check.
-        advance_by = chars_consumed.zero? ? 1 : chars_consumed
-        current_char_offset += advance_by
-
-        # Break if we've advanced past the end
-        break if current_char_offset > text.length
-
-        search_text = text[current_char_offset..] || ''
+        advance = (result[:end_index] - result[:index]).clamp(1, Float::INFINITY)
+        offset = result[:index] + advance
       end
+    end
+
+    private
+
+    def build_params(opts)
+      params = Native::RegAParams.new
+      Native.tre_regaparams_default(params.to_ptr)
+      return params.tap { |p| p[:max_err] = 0 } if opts.empty?
+
+      apply_limits(params, opts)
+      apply_costs(params, opts)
+      params
+    end
+
+    def apply_limits(params, opts)
+      params[:max_err]   = opts[:max_errors] if opts.key?(:max_errors)
+      params[:max_ins]   = opts.fetch(:max_insertions, opts.key?(:max_errors) ? params[:max_ins] : 0)
+      params[:max_del]   = opts.fetch(:max_deletions, opts.key?(:max_errors) ? params[:max_del] : 0)
+      params[:max_subst] = opts.fetch(:max_substitutions, opts.key?(:max_errors) ? params[:max_subst] : 0)
+      params[:max_cost]  = opts[:max_cost] if opts.key?(:max_cost)
+
+      # Bound max_err if not explicitly set
+      return unless !opts.key?(:max_errors) && !opts.key?(:max_cost)
+
+      params[:max_err] =
+        params[:max_ins] + params[:max_del] + params[:max_subst]
+    end
+
+    def apply_costs(params, opts)
+      params[:cost_ins]   = opts[:weight_insertion] if opts.key?(:weight_insertion)
+      params[:cost_del]   = opts[:weight_deletion] if opts.key?(:weight_deletion)
+      params[:cost_subst] = opts[:weight_substitution] if opts.key?(:weight_substitution)
+    end
+
+    def prepare_match_data(pmatch)
+      Native::RegAMatch.new.tap do |m|
+        m[:nmatch] = 1
+        m[:pmatch] = pmatch
+      end
+    end
+
+    def parse_result(text, match_data, pmatch)
+      rm = Native::RegMatch.new(pmatch)
+      byte_match = text.byteslice(rm[:rm_so]...rm[:rm_eo])
+      char_start = text.byteslice(0...rm[:rm_so]).length
+
+      {
+        match: byte_match,
+        index: char_start,
+        end_index: char_start + byte_match.length,
+        cost: match_data[:cost],
+        errors: {
+          insertions: match_data[:num_ins],
+          deletions: match_data[:num_del],
+          substitutions: match_data[:num_subst]
+        }
+      }
     end
   end
 end

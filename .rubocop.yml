@@ -47,3 +47,12 @@ RSpec/NamedSubject:
 
 RSpec/ExampleLength:
   Max: 10
+
+Metrics/MethodLength:
+  Max: 15
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/CyclomaticComplexity:
+  Max: 10
