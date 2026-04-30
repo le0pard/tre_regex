@@ -1,3 +1,7 @@
+inherit_mode:
+  merge:
+    - Exclude
+
 plugins:
   - rubocop-performance
   - rubocop-rspec
@@ -5,7 +9,10 @@ plugins:
 
 AllCops:
   NewCops: enable
-  SuggestExtensions: false
+  ParserEngine: parser_prism
+  CacheRootDirectory: .rubocop_cache
+  MaxFilesInCache: 8000
+  UseCache: false
   Exclude:
     - 'ext/tre_regex/tre-master/**/'
     - 'pkg/**/*'
