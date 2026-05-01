@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]
+        os: [ubuntu-latest, macos-26]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -127,9 +127,9 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: x86_64-linux-gnu
-          - os: macos-13 # Intel Mac
+          - os: macos-26-intel # Intel Mac
             platform: x86_64-darwin
-          - os: macos-14 # Apple Silicon Mac
+          - os: macos-26 # Apple Silicon Mac
             platform: arm64-darwin
           - os: windows-latest
             platform: x64-mingw-ucrt
