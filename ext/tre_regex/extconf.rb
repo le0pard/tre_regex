@@ -18,9 +18,7 @@ build_env = {
 }
 
 # Embed standard C libraries directly into the DLL on Windows so it doesn't crash on bare machines
-if is_windows
-  build_env['LDFLAGS'] = "#{build_env['LDFLAGS']} -static-libgcc -static-libstdc++"
-end
+build_env['LDFLAGS'] = "#{build_env['LDFLAGS']} -static-libgcc -static-libstdc++" if is_windows
 
 gnu_host = RbConfig::CONFIG['host_alias']
 gnu_host = RbConfig::CONFIG['host'] if gnu_host.nil? || gnu_host.empty?
