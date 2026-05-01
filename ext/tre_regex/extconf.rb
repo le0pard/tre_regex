@@ -5,6 +5,7 @@ require 'rbconfig'
 require 'open-uri'
 require 'net/http'
 require 'fileutils'
+require 'digest'
 
 build_env = {
   'CC' => RbConfig::CONFIG['CC'],
@@ -32,6 +33,7 @@ root_dir = File.dirname(root_dir) until Dir.exist?(File.join(root_dir, 'lib')) |
 github_repo = 'laurikari/tre'
 version = '5ac28057f648debda76f9bf4d39dfdfa85b0df18'
 tarball_url = "https://github.com/#{github_repo}/archive/#{version}.tar.gz"
+expected_tarball_sha256 = '528a8f8a4672cd3a0e5354629323a17d0cfa98b3792a57d764b64db30e2d5e9a'
 tarball_file = File.expand_path("./tre-#{version}.tar.gz", __dir__)
 tre_src_dir = File.expand_path("./tre-#{version}", __dir__)
 dest_lib_dir = File.join(root_dir, 'lib', 'tre_regex', 'bin')
@@ -59,6 +61,18 @@ unless Dir.exist?(tre_src_dir)
   puts '========== Downloading TRE from GitHub =========='
   begin
     content = download_file(tarball_url)
+
+    actual_sha256 = Digest::SHA256.hexdigest(content)
+
+    if actual_sha256 != expected_tarball_sha256
+      abort [
+        'SECURITY ERROR:',
+        'Checksum mismatch for TRE source!',
+        "Expected: #{expected_tarball_sha256}",
+        "Actual:   #{actual_sha256}"
+      ].join("\n")
+    end
+
     File.binwrite(tarball_file, content)
   rescue StandardError => e
     abort "Error: #{e.message}"
