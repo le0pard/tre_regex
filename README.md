@@ -316,6 +316,22 @@ If you need to find overlapping fuzzy matches, you will need to manually step th
 
 ## Development
 
+Because `TreRegex` compiles the underlying TRE C-library from source, you must have standard C-compilation and `autotools` dependencies installed on your machine before running the setup script
+
+**Ubuntu / Debian Linux**
+
+```bash
+sudo apt-get update
+sudo apt-get install build-essential autoconf automake libtool gettext autopoint pkg-config
+```
+
+**macOS**
+
+Then, install the autotools suite via [Homebrew](https://brew.sh/):
+```bash
+brew install autoconf automake libtool gettext pkg-config
+```
+
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
