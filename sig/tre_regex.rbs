@@ -17,6 +17,7 @@ module TreRegex
 
   type match_result = {
     match: String,
+    submatches: Array[String?],
     index: Integer,
     end_index: Integer,
     cost: Integer,
