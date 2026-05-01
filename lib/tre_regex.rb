@@ -155,7 +155,6 @@ module TreRegex
     def build_params(opts)
       params = Native::RegAParams.new
       Native.tre_regaparams_default(params.to_ptr)
-      return params.tap { |p| p[:max_err] = 0 } if opts.empty?
 
       apply_limits(params, opts)
       apply_costs(params, opts)

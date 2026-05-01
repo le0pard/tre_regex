@@ -32,6 +32,9 @@ Gem::Specification.new do |spec|
     lib/**/*.rb
     ext/tre_regex/extconf.rb
     ext/tre_regex/tre_regex.c
+    README.md
+    LICENSE
+    tre_regex.gemspec
   ].flat_map { |p| Dir[p] }
   spec.extensions = ['ext/tre_regex/extconf.rb']
 

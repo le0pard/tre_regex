@@ -178,6 +178,17 @@ RSpec.describe TreRegex do
       end
     end
 
+    describe 'Option Sanitization' do
+      it 'ignores unknown options and safely defaults to exact matching' do
+        regex = described_class.new('apple')
+
+        # 'aple' requires 1 deletion. Because the option is a typo, it should default to 0 errors.
+        result = regex.exec('I ate an aple', mex_errors: 1)
+
+        expect(result).to be_nil
+      end
+    end
+
     describe 'Binary Data and Null Byte Safety' do
       it 'safely matches text containing null bytes (\x00) without truncation', :aggregate_failures do
         # A standard C string implementation would aggressively truncate this to just 'hello'
