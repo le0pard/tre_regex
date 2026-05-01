@@ -252,9 +252,9 @@ regex.match_all('cot, cow', max_errors: 3).to_a
 # Allow 3 total errors, but strictly forbid the engine from deleting more than 2 characters
 regex.match_all('cot, cow', max_errors: 3, max_deletions: 2).to_a
 # => [
-#     {match: "cot", submatches: [], index: 0, end_index: 3, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
-#     {match: "cow", submatches: [], index: 5, end_index: 8, cost: 2, errors: {insertions: 0, deletions: 0, substitutions: 2}}
-#    ] # The empty match is mathematically prevented
+#  {match: "cot", submatches: [], index: 0, end_index: 3, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#  {match: "cow", submatches: [], index: 5, end_index: 8, cost: 2, errors: {insertions: 0, deletions: 0, substitutions: 2}}
+# ] # The empty match is mathematically prevented
 ```
 
 ### POSIX vs. PCRE Syntax
