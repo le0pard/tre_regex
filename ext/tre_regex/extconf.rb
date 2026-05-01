@@ -98,8 +98,17 @@ puts '========== Building TRE =========='
 Dir.chdir(tre_src_dir) do
   system(build_env, './utils/autogen.sh') || raise('autogen.sh failed') unless File.exist?('configure')
 
-  system(build_env, './configure', host_flag, '--enable-shared', '--disable-static', '--disable-agrep') ||
-    raise('configure failed')
+  system(
+    build_env,
+    './configure',
+    host_flag,
+    '--enable-shared',
+    '--disable-static',
+    '--disable-agrep',
+    '--disable-nls',
+    'ac_cv_header_libintl_h=no',
+    'ac_cv_lib_intl_libintl_gettext=no'
+  ) || raise('configure failed')
   system(build_env, 'make') || raise('make failed')
 end
 
