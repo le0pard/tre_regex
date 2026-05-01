@@ -24,6 +24,9 @@ if is_windows
 
   # force MinGW to statically link the hidden winpthread dependency
   build_env['LDFLAGS'] = "#{build_env['LDFLAGS']} -Wl,-Bstatic -lpthread -Wl,-Bdynamic"
+
+  # prevent MinGW from injecting a dependency on libssp-0.dll
+  build_env['CFLAGS'] = "#{build_env['CFLAGS']} -fno-stack-protector"
 end
 
 gnu_host = RbConfig::CONFIG['host_alias']
