@@ -111,6 +111,7 @@ jobs:
           protocol=https
           host=github.com
           username=x-access-token
+          password=${{ github.token }}
 
           EOF
           git config --local credential.helper 'cache --timeout=300'
