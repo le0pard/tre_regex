@@ -53,6 +53,7 @@ regex.test?('I ate an APPLE today')
 result = regex.exec('I ate an apple today')
 # => {
 #      :match => "apple",
+#      :submatches => [],
 #      :index => 9,
 #      :end_index => 14,
 #      :cost => 0,
@@ -69,7 +70,7 @@ regex = TreRegex::Regex.new('apple')
 
 # Allow up to 1 error of any kind
 regex.exec('I ate an aple', max_errors: 1)
-# => {:match=>"aple", :index=>9, :end_index=>13, :cost=>1, :errors=>{:insertions=>0, :deletions=>1, :substitutions=>0}}
+# => {match: "aple", submatches: [], index: 9, end_index: 13, cost: 1, errors: {insertions: 0, deletions: 1, substitutions: 0}}
 
 # Allow substitutions, but explicitly forbid deletions
 regex.exec('I ate an aple', max_substitutions: 1, max_deletions: 0)
@@ -86,11 +87,58 @@ regex = TreRegex::Regex.new('cat')
 # Returns an array of match hashes
 regex.match_all('cat, cot, cut', max_errors: 1).to_a
 # => [
-#      {:match=>"cat", :index=>0, ...},
-#      {:match=>"cot", :index=>5, ...},
-#      {:match=>"cut", :index=>10, ...}
+#   {match: "cat", submatches: [], index: 0, end_index: 3, cost: 0, errors: {insertions: 0, deletions: 0, substitutions: 0}},
+#  {match: "cot", submatches: [], index: 5, end_index: 8, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#  {match: "cut", submatches: [], index: 10, end_index: 13, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}}
 #    ]
 ```
+
+### Capture Groups (Submatches)
+
+`TreRegex` fully supports standard POSIX capture groups using parentheses `()`. Whenever a match is found, any captured data is returned as an array of strings under the `:submatches` key in the result hash.
+
+If your pattern does not contain any capture groups, `:submatches` will simply return an empty array `[]`.
+
+```ruby
+regex = TreRegex::Regex.new('I love (ruby|python)')
+result = regex.exec('I love ruby a lot')
+
+# The captured group is extracted exactly as it was matched
+result[:submatches] # => ["ruby"]
+```
+
+#### Multiple and Optional Groups
+
+You can define multiple capture groups, and they will be returned in the array in the exact order they appear in the pattern.
+
+If you use an optional capture group `?` that does not end up matching anything in the target text, `TreRegex` will safely insert a `nil` in its place in the array to maintain the correct index order.
+
+```ruby
+# The first group (cat) is optional. The second group (dog) is required.
+regex = TreRegex::Regex.new('(cat)?(dog)')
+
+result = regex.exec('dog')
+# => {match: "dog", submatches: [nil, "dog"], index: 0, end_index: 3, cost: 0, errors: {insertions: 0, deletions: 0, substitutions: 0}}
+```
+
+#### Fuzzy Capture Groups
+
+One of the most powerful features of `TreRegex` is that capture groups respect your fuzzy matching rules! If a typo occurs *inside* a capture group, the `:submatches` array will return the actual typed text with the typo included.
+
+```ruby
+regex = TreRegex::Regex.new('I ate an (apple)')
+
+# We allow 1 error. The user typed 'aple' (1 deletion).
+result = regex.exec('I ate an aple', max_errors: 1)
+
+result[:submatches] # => ["aple"]
+```
+
+#### The 9-Group Limit
+
+For memory safety and performance during FFI allocation, `TreRegex` allocates a strict maximum of 10 slots per match. Because the first slot is always reserved for the full regex match itself, the engine will only extract a maximum of **9 capture groups** per match.
+
+If your pattern contains 10 or more capture groups `()`, the regex will still compile and match perfectly, but any captured groups beyond the 9th one will be safely ignored and omitted from the `:submatches` array.
 
 ## Configuration Options
 
@@ -192,9 +240,9 @@ regex = TreRegex::Regex.new('cat')
 # but it also matches "" at the end of the string (3 deletions)!
 regex.match_all('cot, cow', max_errors: 3).to_a
 # => [
-#      {:match=>"cot", :index=>0, :cost=>1, :errors=>{:deletions=>0, :substitutions=>1...}},
-#      {:match=>"cow", :index=>5, :cost=>2, :errors=>{:deletions=>0, :substitutions=>2...}},
-#      {:match=>"",    :index=>8, :cost=>3, :errors=>{:deletions=>3, :substitutions=>0...}}
+#     {match: "cot", submatches: [], index: 0, end_index: 3, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#     {match: "cow", submatches: [], index: 5, end_index: 8, cost: 2, errors: {insertions: 0, deletions: 0, substitutions: 2}},
+#     {match: "", submatches: [], index: 8, end_index: 8, cost: 3, errors: {insertions: 0, deletions: 3, substitutions: 0}}
 #    ]
 ```
 
@@ -204,8 +252,8 @@ regex.match_all('cot, cow', max_errors: 3).to_a
 # Allow 3 total errors, but strictly forbid the engine from deleting more than 2 characters
 regex.match_all('cot, cow', max_errors: 3, max_deletions: 2).to_a
 # => [
-#      {:match=>"cot", ...},
-#      {:match=>"cow", ...}
+#     {match: "cot", submatches: [], index: 0, end_index: 3, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#     {match: "cow", submatches: [], index: 5, end_index: 8, cost: 2, errors: {insertions: 0, deletions: 0, substitutions: 2}}
 #    ] # The empty match is mathematically prevented
 ```
 
@@ -244,7 +292,7 @@ regex = TreRegex::Regex.new('apple')
 target = 'I ate 🍎 and an aple'
 
 result = regex.exec(target, max_errors: 1)
-# => {:match=>"aple", :index=>16, :end_index=>20...}
+# => {match: "aple", submatches: [], index: 15, end_index: 19, cost: 1, errors: {insertions: 0, deletions: 1, substitutions: 0}}
 
 # This is 100% safe and will correctly return "aple"
 target[result[:index]...result[:end_index]]
@@ -261,7 +309,7 @@ regex = TreRegex::Regex.new('ana')
 
 # Returns 1 match, not 2!
 regex.match_all('banana').to_a
-# => [{:match=>"ana", :index=>1, :end_index=>4...}]
+# => [{match: "ana", submatches: [], index: 1, end_index: 4, cost: 0, errors: {insertions: 0, deletions: 0, substitutions: 0}}]
 ```
 
 If you need to find overlapping fuzzy matches, you will need to manually step through the string by advancing your starting index by 1 character after each search.
