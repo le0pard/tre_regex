@@ -180,6 +180,95 @@ regex.test?('algoritm', options) # => true
 regex.test?('algorethm', options) # => false
 ```
 
+## Gotchas & Best Practices
+
+### The "Empty Match" Phenomenon
+
+Because `TreRegex` relies on strict mathematical edit distances, you must be careful when setting `max_errors` to a value that is **greater than or equal to the length of your pattern**.
+
+If you allow 3 errors on a 3-letter word, the engine considers *deleting all 3 characters* to be a valid mathematical match (cost = 3). This will result in an unexpected match against an empty string (`""`).
+
+```ruby
+regex = TreRegex::Regex.new('cat')
+
+# We allow 3 errors on a 3-letter word.
+# The engine matches "cow" (2 substitutions)...
+# but it also matches "" at the end of the string (3 deletions)!
+regex.match_all('cot, cow', max_errors: 3).to_a
+# => [
+#      {:match=>"cot", :index=>0, :cost=>1, :errors=>{:deletions=>0, :substitutions=>1...}},
+#      {:match=>"cow", :index=>5, :cost=>2, :errors=>{:deletions=>0, :substitutions=>2...}},
+#      {:match=>"",    :index=>8, :cost=>3, :errors=>{:deletions=>3, :substitutions=>0...}}
+#    ]
+```
+
+**Best Practice**: if you need a high `max_errors` limit but want to prevent the engine from matching empty strings, explicitly cap the `max_deletions` option so that at least one character of your pattern must survive
+
+```ruby
+# Allow 3 total errors, but strictly forbid the engine from deleting more than 2 characters
+regex.match_all('cot, cow', max_errors: 3, max_deletions: 2).to_a
+# => [
+#      {:match=>"cot", ...},
+#      {:match=>"cow", ...}
+#    ] # The empty match is mathematically prevented
+```
+
+### POSIX vs. PCRE Syntax
+
+Ruby’s built-in `Regexp` engine uses a PCRE-like syntax (Onigmo), which supports advanced features like lookaheads `(?=...)`, lookbehinds, and backreferences.
+
+The underlying TRE C-library uses **POSIX Extended Regular Expressions (ERE)**. While it supports standard regex features (character classes `[a-z]`, quantifiers `*`, `+`, `?`, and grouping), it **does not** support Perl-specific extensions.
+
+```ruby
+# Valid TRE syntax
+TreRegex::Regex.new('(cat|dog)s?')
+
+# INVALID: Lookarounds are not supported by POSIX ERE
+TreRegex::Regex.new('cat(?=s)') # Failed to compile regex pattern: cat(?=s) (TreRegex::Error)
+```
+
+### The Performance Cost of Extreme Fuzziness
+
+Fuzzy matching is inherently more computationally expensive than exact matching. The TRE algorithm scales based on the length of the string and the number of allowed errors.
+
+If you are searching a massive block of text (like a whole book) and set `max_errors: 10`, the engine has to calculate an enormous number of branching possibilities.
+
+**Best Practice**: Keep your error limits tight and realistic. An error limit of 1 to 3 is usually perfect for catching typos. If you need to allow a massive number of errors, consider breaking the target text into smaller chunks (like sentences or words) before matching.
+
+### Unicode Character Indices vs. Byte Offsets
+
+In C, strings are just arrays of bytes. An emoji like 🍎 takes up 4 bytes, which often breaks indexing when C-libraries pass data back to Ruby.
+
+`TreRegex` handles this for you under the hood. The `:index` and `:end_index` returned in the match hash are strictly mapped to **Ruby character indices**, not raw byte offsets.
+
+**Best Practice**: You can safely use the returned indices directly with standard Ruby string slicing, even if the text is filled with emojis or multi-byte characters. Do not use them with `String#byteslice`
+
+```ruby
+regex = TreRegex::Regex.new('apple')
+target = 'I ate 🍎 and an aple'
+
+result = regex.exec(target, max_errors: 1)
+# => {:match=>"aple", :index=>16, :end_index=>20...}
+
+# This is 100% safe and will correctly return "aple"
+target[result[:index]...result[:end_index]]
+```
+
+### Overlapping Matches in `match_all`
+
+When using `match_all`, be aware that the engine consumes the string as it matches. By default, standard regex engines (including TRE) do not return overlapping matches.
+
+If you search for `"ana"` in `"banana"`, it will only match the first `"ana"`. Once it consumes those characters, it moves on to the remaining `"na"`.
+
+```ruby
+regex = TreRegex::Regex.new('ana')
+
+# Returns 1 match, not 2!
+regex.match_all('banana').to_a
+# => [{:match=>"ana", :index=>1, :end_index=>4...}]
+```
+
+If you need to find overlapping fuzzy matches, you will need to manually step through the string by advancing your starting index by 1 character after each search.
 
 ## Development
 
