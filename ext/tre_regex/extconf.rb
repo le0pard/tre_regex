@@ -66,7 +66,7 @@ unless Dir.exist?(tre_src_dir)
 
   puts '========== Extracting TRE Source =========='
   # Ensure we use -z for gzip
-  system("tar -xzf #{tarball_file} -C #{__dir__}") || abort('Extraction failed')
+  system('tar', '-xzf', tarball_file, '-C', __dir__) || abort('Extraction failed')
 end
 
 # Build TRE synchronously using Ruby
@@ -75,7 +75,7 @@ puts '========== Building TRE =========='
 Dir.chdir(tre_src_dir) do
   system(build_env, './utils/autogen.sh') || raise('autogen.sh failed') unless File.exist?('configure')
 
-  system(build_env, "./configure #{host_flag} --enable-shared --disable-static --disable-agrep") ||
+  system(build_env, './configure', host_flag, '--enable-shared', '--disable-static', '--disable-agrep') ||
     raise('configure failed')
   system(build_env, 'make') || raise('make failed')
 end
