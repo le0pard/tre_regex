@@ -102,12 +102,12 @@ module TreRegex
     end
 
     def exec(text, options = {})
-      params = build_params(options)
-      pmatch = FFI::MemoryPointer.new(Native::RegMatch)
-      match_data = prepare_match_data(pmatch)
+      result = execute_match(text, options)
+      return nil unless result
 
-      res = Native.tre_regaexec(@preg, text, match_data, params, 0)
-      res.zero? ? parse_result(text, match_data, pmatch) : nil
+      result.delete(:byte_index)
+      result.delete(:byte_end_index)
+      result
     end
 
     def test?(text, options = {})
@@ -117,21 +117,40 @@ module TreRegex
     def match_all(text, options = {})
       return enum_for(:match_all, text, options) unless block_given?
 
-      offset = 0
-      while offset <= text.length
-        result = exec(text[offset..] || '', options)
-        break unless result
+      byte_off = 0
+      char_off = 0
 
-        result[:index] += offset
-        result[:end_index] += offset
+      while byte_off <= text.bytesize
+        substring = text.byteslice(byte_off..) || ''
+
+        # Use the private execute_match so we get the byte cursors!
+        break unless (result = execute_match(substring, options))
+
+        adv_bytes, adv_chars = process_match!(result, char_off)
         yield result
 
-        advance = (result[:end_index] - result[:index]).clamp(1, Float::INFINITY)
-        offset = result[:index] + advance
+        break if adv_bytes.zero? && byte_off == text.bytesize
+
+        if adv_bytes.zero?
+          adv_bytes = substring[0].bytesize
+          adv_chars = 1
+        end
+
+        byte_off += adv_bytes
+        char_off += adv_chars
       end
     end
 
     private
+
+    def execute_match(text, options)
+      params = build_params(options)
+      pmatch = FFI::MemoryPointer.new(Native::RegMatch)
+      match_data = prepare_match_data(pmatch)
+
+      res = Native.tre_regaexec(@preg, text, match_data, params, 0)
+      res.zero? ? parse_result(text, match_data, pmatch) : nil
+    end
 
     def build_params(opts)
       params = Native::RegAParams.new
@@ -170,6 +189,17 @@ module TreRegex
       end
     end
 
+    def process_match!(result, char_offset)
+      result.delete(:byte_index)
+      adv_bytes = result.delete(:byte_end_index)
+      adv_chars = result[:end_index]
+
+      result[:index] += char_offset
+      result[:end_index] += char_offset
+
+      [adv_bytes, adv_chars]
+    end
+
     def parse_result(text, match_data, pmatch)
       rm = Native::RegMatch.new(pmatch)
       byte_match = text.byteslice(rm[:rm_so]...rm[:rm_eo])
@@ -179,12 +209,18 @@ module TreRegex
         match: byte_match,
         index: char_start,
         end_index: char_start + byte_match.length,
+        byte_index: rm[:rm_so],
+        byte_end_index: rm[:rm_eo],
         cost: match_data[:cost],
-        errors: {
-          insertions: match_data[:num_ins],
-          deletions: match_data[:num_del],
-          substitutions: match_data[:num_subst]
-        }
+        errors: parse_errors(match_data)
+      }
+    end
+
+    def parse_errors(match_data)
+      {
+        insertions: match_data[:num_ins],
+        deletions: match_data[:num_del],
+        substitutions: match_data[:num_subst]
       }
     end
   end

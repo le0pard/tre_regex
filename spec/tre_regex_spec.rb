@@ -178,6 +178,37 @@ RSpec.describe TreRegex do
       end
     end
 
+    describe 'Byte-to-Char Cursor Tracking' do
+      let(:regex) { described_class.new('apple') }
+
+      it 'advances safely through multi-byte characters without losing sync', :aggregate_failures do
+        # '🍎 ' is 2 Ruby chars. 'apple' is 5 chars. ' 🍌 ' is 3 chars.
+        text = '🍎 apple 🍌 apple 🍇'
+
+        results = regex.match_all(text).to_a
+
+        expect(results.size).to eq(2)
+
+        # First match should be exactly at character index 2
+        expect(results[0][:index]).to eq(2)
+        expect(results[0][:end_index]).to eq(7)
+        expect(text[results[0][:index]...results[0][:end_index]]).to eq('apple')
+
+        # Second match should be exactly at character index 10
+        expect(results[1][:index]).to eq(10)
+        expect(results[1][:end_index]).to eq(15)
+        expect(text[results[1][:index]...results[1][:end_index]]).to eq('apple')
+      end
+
+      it 'strictly adheres to the public API and hides internal byte keys', :aggregate_failures do
+        exec_result = regex.exec('apple')
+        expect(exec_result.keys).not_to include(:byte_index, :byte_end_index)
+
+        match_all_result = regex.match_all('apple').first
+        expect(match_all_result.keys).not_to include(:byte_index, :byte_end_index)
+      end
+    end
+
     describe 'Gotchas and Best Practices' do
       describe 'The "Empty Match" Phenomenon' do
         let(:regex) { described_class.new('cat') }
