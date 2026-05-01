@@ -6,6 +6,15 @@ require 'open-uri'
 require 'net/http'
 require 'fileutils'
 
+build_env = {
+  'CC' => RbConfig::CONFIG['CC'],
+  'CFLAGS' => RbConfig::CONFIG['CFLAGS'],
+  'CPPFLAGS' => RbConfig::CONFIG['CPPFLAGS'],
+  'LDFLAGS' => RbConfig::CONFIG['LDFLAGS']
+}
+
+host_flag = "--host=#{RbConfig::CONFIG['host']}"
+
 is_windows = RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
 is_darwin  = RbConfig::CONFIG['host_os'].include?('darwin')
 
@@ -54,15 +63,14 @@ unless Dir.exist?(tre_src_dir)
 end
 
 # Build TRE synchronously using Ruby
-host_flag = enable_config('cross-build') ? "--host=#{RbConfig::CONFIG['host']} " : ''
-RbConfig::CONFIG['SOEXT'] || RbConfig::CONFIG['DLEXT'] || (is_windows ? 'dll' : 'so')
 
 puts '========== Building TRE =========='
 Dir.chdir(tre_src_dir) do
-  system('./utils/autogen.sh') || raise('autogen.sh failed') unless File.exist?('configure')
+  system(build_env, './utils/autogen.sh') || raise('autogen.sh failed') unless File.exist?('configure')
 
-  system("./configure #{host_flag} --enable-shared --disable-static --disable-agrep") || raise('configure failed')
-  system('make') || raise('make failed')
+  system(build_env, "./configure #{host_flag} --enable-shared --disable-static --disable-agrep") ||
+    raise('configure failed')
+  system(build_env, 'make') || raise('make failed')
 end
 
 puts '========== Staging Shared Library for FFI =========='
