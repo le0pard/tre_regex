@@ -97,15 +97,8 @@ end
 puts '========== Staging Shared Library for FFI =========='
 FileUtils.mkdir_p(dest_lib_dir)
 
-# Find the REAL physical file, strictly ignoring symlinks and static (.a) archives
+# Find the shared library, ignoring static archives
 src_lib = Dir.glob("#{tre_src_dir}/lib/.libs/*").find do |f|
-  (f.include?('.so') || f.include?('.dylib') || f.end_with?('.dll')) &&
-    !f.end_with?('.a') &&
-    !File.symlink?(f)
-end
-
-# Fallback just in case libtool behaved differently
-src_lib ||= Dir.glob("#{tre_src_dir}/lib/.libs/*").find do |f|
   (f.include?('.so') || f.include?('.dylib') || f.end_with?('.dll')) && !f.end_with?('.a')
 end
 

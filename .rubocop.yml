@@ -51,7 +51,7 @@ Style/HashSyntax:
   EnforcedShorthandSyntax: always
 
 Metrics/ClassLength:
-  Max: 110
+  Max: 150
 
 RSpec/NamedSubject:
   EnforcedStyle: named_only

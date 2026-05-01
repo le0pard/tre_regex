@@ -23,8 +23,6 @@ PLATFORMS = %w[
 ].freeze
 spec = Gem::Specification.load('tre_regex.gemspec')
 
-RakeCompilerDock.set_ruby_cc_version(spec.required_ruby_version.as_list)
-
 Gem::PackageTask.new(spec).define
 
 exttask = Rake::ExtensionTask.new do |ext|

@@ -70,7 +70,7 @@ module TreRegex
 
     attach_function :tre_regcomp, %i[pointer string int], :int
     attach_function :tre_regfree, [:pointer], :void
-    attach_function :tre_regaexec, [:pointer, :string, :pointer, RegAParams.by_value, :int], :int
+    attach_function :tre_reganexec, [:pointer, :pointer, :size_t, :pointer, RegAParams.by_value, :int], :int
     attach_function :tre_regaparams_default, [:pointer], :void
   end
 
@@ -101,55 +101,55 @@ module TreRegex
       end
     end
 
-    def exec(text, options = {})
-      result = execute_match(text, options)
-      return nil unless result
-
-      result.delete(:byte_index)
-      result.delete(:byte_end_index)
-      result
-    end
-
     def test?(text, options = {})
       !exec(text, options).nil?
+    end
+
+    def exec(text, options = {})
+      ptr = FFI::MemoryPointer.from_string(text)
+      m_info = execute_match(ptr, text.bytesize, options)
+
+      m_info ? extract_match_payload(text, 0, 0, m_info).first : nil
     end
 
     def match_all(text, options = {})
       return enum_for(:match_all, text, options) unless block_given?
 
-      byte_off = 0
-      char_off = 0
+      ptr = FFI::MemoryPointer.from_string(text)
+      b_off = c_off = 0
 
-      while byte_off <= text.bytesize
-        substring = text.byteslice(byte_off..) || ''
+      while b_off <= text.bytesize
+        m_info = execute_match(ptr + b_off, text.bytesize - b_off, options)
+        break unless m_info
 
-        # Use the private execute_match so we get the byte cursors!
-        break unless (result = execute_match(substring, options))
+        payload, adv_b, adv_c = extract_match_payload(text, b_off, c_off, m_info)
+        yield payload
 
-        adv_bytes, adv_chars = process_match!(result, char_off)
-        yield result
+        break if adv_b.zero? && b_off == text.bytesize
 
-        break if adv_bytes.zero? && byte_off == text.bytesize
-
-        if adv_bytes.zero?
-          adv_bytes = substring[0].bytesize
-          adv_chars = 1
+        # Zero-width infinite loop protection
+        if adv_b.zero?
+          adv_b = text.byteslice(b_off..).chr.bytesize
+          adv_c = 1
         end
 
-        byte_off += adv_bytes
-        char_off += adv_chars
+        b_off += adv_b
+        c_off += adv_c
       end
     end
 
     private
 
-    def execute_match(text, options)
+    def execute_match(text_ptr, len, options)
       params = build_params(options)
       pmatch = FFI::MemoryPointer.new(Native::RegMatch)
       match_data = prepare_match_data(pmatch)
 
-      res = Native.tre_regaexec(@preg, text, match_data, params, 0)
-      res.zero? ? parse_result(text, match_data, pmatch) : nil
+      res = Native.tre_reganexec(@preg, text_ptr, len, match_data, params, 0)
+      return nil unless res.zero?
+
+      rm = Native::RegMatch.new(pmatch)
+      [rm[:rm_so], rm[:rm_eo], match_data]
     end
 
     def build_params(opts)
@@ -189,31 +189,21 @@ module TreRegex
       end
     end
 
-    def process_match!(result, char_offset)
-      result.delete(:byte_index)
-      adv_bytes = result.delete(:byte_end_index)
-      adv_chars = result[:end_index]
+    def extract_match_payload(text, byte_off, char_off, m_info)
+      rm_so, rm_eo, match_data = m_info
+      prefix_len = (text.byteslice(byte_off, rm_so) || '').length
+      match_str = text.byteslice((byte_off + rm_so)...(byte_off + rm_eo))
 
-      result[:index] += char_offset
-      result[:end_index] += char_offset
-
-      [adv_bytes, adv_chars]
-    end
-
-    def parse_result(text, match_data, pmatch)
-      rm = Native::RegMatch.new(pmatch)
-      byte_match = text.byteslice(rm[:rm_so]...rm[:rm_eo])
-      char_start = text.byteslice(0...rm[:rm_so]).length
-
-      {
-        match: byte_match,
-        index: char_start,
-        end_index: char_start + byte_match.length,
-        byte_index: rm[:rm_so],
-        byte_end_index: rm[:rm_eo],
+      payload = {
+        match: match_str,
+        index: char_off + prefix_len,
+        end_index: char_off + prefix_len + match_str.length,
         cost: match_data[:cost],
         errors: parse_errors(match_data)
       }
+
+      # Return the payload AND the advancement cursors
+      [payload, rm_eo, prefix_len + match_str.length]
     end
 
     def parse_errors(match_data)

@@ -178,6 +178,20 @@ RSpec.describe TreRegex do
       end
     end
 
+    describe 'Binary Data and Null Byte Safety' do
+      it 'safely matches text containing null bytes (\x00) without truncation', :aggregate_failures do
+        # A standard C string implementation would aggressively truncate this to just 'hello'
+        text = "hello\x00world"
+        regex = described_class.new('world')
+
+        result = regex.exec(text)
+        expect(result).not_to be_nil
+        expect(result[:match]).to eq('world')
+        # h(1) e(2) l(3) l(4) o(5) \x00(6) w(7) -> index 6
+        expect(result[:index]).to eq(6)
+      end
+    end
+
     describe 'Byte-to-Char Cursor Tracking' do
       let(:regex) { described_class.new('apple') }
 
