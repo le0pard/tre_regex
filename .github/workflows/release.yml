@@ -76,6 +76,44 @@ jobs:
           path: pkg/*-${{ matrix.platform }}.gem
           retention-days: 1
 
+  test_native:
+    name: Test Gem (${{ matrix.platform }})
+    needs: build_native
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Map the compiled platforms to actual physical GitHub runners
+        include:
+          - os: ubuntu-latest
+            platform: x86_64-linux-gnu
+          - os: macos-13 # Intel Mac
+            platform: x86_64-darwin
+          - os: macos-14 # Apple Silicon Mac
+            platform: arm64-darwin
+          - os: windows-latest
+            platform: x64-mingw-ucrt
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+
+      - name: Download gem artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: gem-native-${{ matrix.platform }}
+          path: pkg
+
+      - name: Run Test Script
+        shell: bash # Explicitly use bash so the script works on Windows runners!
+        run: |
+          chmod +x .github/scripts/test-gem-install.sh
+          .github/scripts/test-gem-install.sh pkg
+
   publish:
     name: Publish to RubyGems
     needs: [build_source, build_native]
@@ -116,12 +154,12 @@ jobs:
           EOF
           git config --local credential.helper 'cache --timeout=300'
 
-      - name: Configure trusted publishing credentials
-        uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
+      # - name: Configure trusted publishing credentials
+      #   uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
 
-      - name: Publish gems 🚀
-        run: |
-          for gem_file in pkg/*.gem; do
-            echo "Pushing $gem_file..."
-            gem push "$gem_file"
-          done
+      # - name: Publish gems 🚀
+      #   run: |
+      #     for gem_file in pkg/*.gem; do
+      #       echo "Pushing $gem_file..."
+      #       gem push "$gem_file"
+      #     done

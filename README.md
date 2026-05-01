@@ -8,15 +8,11 @@ Standard regular expressions are strictly exact. If you are searching text conta
 
 While Ruby has built-in string distance metrics (like Levenshtein distance), they usually require comparing whole strings against other whole strings. `TreRegex` solves this by allowing you to search for a pattern *within* a larger body of text while permitting a configurable number of errors (insertions, deletions, and substitutions).
 
-Furthermore, `TreRegex` ships with precompiled cross-platform native binaries. This means users installing your gem do not need a C compiler on their machine—it just works out of the box on Linux, macOS, and Windows.
-
 ## Features
 
 * **Approximate Matching**: Find matches even if the target string has missing, extra, or substituted characters.
 * **Granular Control**: Set strict limits on `max_errors`, or fine-tune by specific error types (`max_insertions`, `max_deletions`, `max_substitutions`).
 * **Multi-byte Unicode Safety**: Transparently maps underlying C byte-offsets back to native Ruby character indices (e.g., emojis won't break your offsets).
-* **Memory Safe**: Utilizes Ruby's Garbage Collector to safely manage C-level memory allocation behind the scenes.
-* **Precompiled Binaries**: Fast installation with zero compilation required on the end-user's machine.
 
 ## Installation
 

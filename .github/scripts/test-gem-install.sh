@@ -1,0 +1,33 @@
+#! /usr/bin/env bash
+#
+#  run as part of CI
+#
+if [[ $# -lt 1 ]] ; then
+  echo "usage: $(basename $0) <gems_dir> [install_flags]"
+  exit 1
+fi
+
+GEMS_DIR=$1
+shift
+INSTALL_FLAGS=$*
+
+test -e /etc/os-release && cat /etc/os-release
+
+set -e -x -u
+
+pushd $GEMS_DIR
+  gemfile=$(ls *.gem | head -n1)
+  echo "Installing $gemfile..."
+  gem install --no-document ${gemfile} ${INSTALL_FLAGS}
+  gem list -d tre_regex
+popd
+
+# Install RSpec globally. We CANNOT use Bundler because evaluating
+# the local gemspec requires the `lib/` directory to exist!
+gem install rspec
+
+# delete local source files to guarantee Ruby uses the installed binary gem!
+rm -rf lib ext Gemfile Gemfile.lock
+
+# Run the test suite against the globally installed gem
+rspec spec/
