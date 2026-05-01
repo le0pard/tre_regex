@@ -42,6 +42,12 @@ module TreRegex
     REG_NEWLINE  = 4
     REG_NOSUB    = 8
 
+    # TRE's regex_t struct
+    class RegexT < FFI::Struct
+      layout :re_nsub, :size_t,
+             :value,   :pointer
+    end
+
     # Memory layout for TRE match offsets
     class RegMatch < FFI::Struct
       layout :rm_so, :int,
@@ -82,13 +88,12 @@ module TreRegex
 
     def initialize(pattern, ignore_case: false)
       @pattern = pattern
-      # Allocate a safe 256-byte buffer in C memory for the regex_t struc
-      @preg = FFI::MemoryPointer.new(:char, 256)
+      @preg = Native::RegexT.new
 
       flags = Native::REG_EXTENDED
       flags |= Native::REG_ICASE if ignore_case
 
-      res = Native.tre_regcomp(@preg, pattern, flags)
+      res = Native.tre_regcomp(@preg.to_ptr, pattern, flags)
       raise TreRegex::Error, "Failed to compile regex pattern: #{pattern}" if res != 0
 
       # Garbage Collection Hook: Tell Ruby to free the C memory when this object is destroyed
@@ -96,10 +101,12 @@ module TreRegex
     end
 
     # The GC finalizer proc
-    def self.finalize(preg_ptr)
+    def self.finalize(preg)
       proc do
-        Native.tre_regfree(preg_ptr)
-        preg_ptr.free
+        # Free the internal arrays allocated by TRE
+        Native.tre_regfree(preg.to_ptr)
+        # Safely free the struct memory ourselves
+        preg.to_ptr.free
       end
     end
 
@@ -149,7 +156,7 @@ module TreRegex
       pmatch_array = FFI::MemoryPointer.new(Native::RegMatch, MAX_NMATCH)
       match_data = prepare_match_data(pmatch_array, MAX_NMATCH)
 
-      res = Native.tre_reganexec(@preg, text_ptr, len, match_data, params, 0)
+      res = Native.tre_reganexec(@preg.to_ptr, text_ptr, len, match_data, params, 0)
       return nil unless res.zero?
 
       # Return the entire array pointer to be parsed

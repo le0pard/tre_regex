@@ -1,6 +1,6 @@
 # TreRegex [![Ruby Checks](https://github.com/le0pard/tre_regex/actions/workflows/main.yml/badge.svg)](https://github.com/le0pard/tre_regex/actions/workflows/main.yml)
 
-`TreRegex` is a robust Ruby gem that provides a high-performance interface to the [TRE](https://github.com/laurikari/tre) approximate regex matching library. Powered by FFI, it allows you to perform lightning-fast fuzzy string searching while safely handling Ruby's Unicode characters.
+`TreRegex` provides a high-performance Ruby interface to the [TRE](https://github.com/laurikari/tre) C library using FFI. It brings robust approximate (fuzzy) regular expression matching to Ruby, featuring multi-byte Unicode string safety, and granular error limits
 
 ## Why?
 
