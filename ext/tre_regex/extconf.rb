@@ -13,7 +13,14 @@ build_env = {
   'LDFLAGS' => RbConfig::CONFIG['LDFLAGS']
 }
 
-host_flag = "--host=#{RbConfig::CONFIG['host']}"
+gnu_host = RbConfig::CONFIG['host_alias']
+gnu_host = RbConfig::CONFIG['host'] if gnu_host.nil? || gnu_host.empty?
+
+# Convert 'arm64' to 'aarch64' (Apple Silicon) and 'x64' to 'x86_64' (Windows)
+gnu_host = gnu_host.sub('arm64', 'aarch64').sub(/^x64/, 'x86_64')
+
+# Pass the translated, safe name to configure
+host_flag = "--host=#{gnu_host}"
 
 is_windows = RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
 is_darwin  = RbConfig::CONFIG['host_os'].include?('darwin')
