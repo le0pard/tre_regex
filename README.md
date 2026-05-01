@@ -87,10 +87,10 @@ regex = TreRegex::Regex.new('cat')
 # Returns an array of match hashes
 regex.match_all('cat, cot, cut', max_errors: 1).to_a
 # => [
-#   {match: "cat", submatches: [], index: 0, end_index: 3, cost: 0, errors: {insertions: 0, deletions: 0, substitutions: 0}},
-#   {match: "cot", submatches: [], index: 5, end_index: 8, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
-#   {match: "cut", submatches: [], index: 10, end_index: 13, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}}
-#    ]
+#  {match: "cat", submatches: [], index: 0, end_index: 3, cost: 0, errors: {insertions: 0, deletions: 0, substitutions: 0}},
+#  {match: "cot", submatches: [], index: 5, end_index: 8, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#  {match: "cut", submatches: [], index: 10, end_index: 13, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}}
+# ]
 ```
 
 ### Capture Groups (Submatches)
@@ -240,10 +240,10 @@ regex = TreRegex::Regex.new('cat')
 # but it also matches "" at the end of the string (3 deletions)!
 regex.match_all('cot, cow', max_errors: 3).to_a
 # => [
-#     {match: "cot", submatches: [], index: 0, end_index: 3, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
-#     {match: "cow", submatches: [], index: 5, end_index: 8, cost: 2, errors: {insertions: 0, deletions: 0, substitutions: 2}},
-#     {match: "", submatches: [], index: 8, end_index: 8, cost: 3, errors: {insertions: 0, deletions: 3, substitutions: 0}}
-#    ]
+#  {match: "cot", submatches: [], index: 0, end_index: 3, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#  {match: "cow", submatches: [], index: 5, end_index: 8, cost: 2, errors: {insertions: 0, deletions: 0, substitutions: 2}},
+#  {match: "", submatches: [], index: 8, end_index: 8, cost: 3, errors: {insertions: 0, deletions: 3, substitutions: 0}}
+# ]
 ```
 
 **Best Practice**: if you need a high `max_errors` limit but want to prevent the engine from matching empty strings, explicitly cap the `max_deletions` option so that at least one character of your pattern must survive
