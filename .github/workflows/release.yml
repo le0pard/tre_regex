@@ -109,14 +109,14 @@ jobs:
           path: pkg
 
       - name: Run Test Script
-        shell: bash # Explicitly use bash so the script works on Windows runners!
+        shell: bash
         run: |
           chmod +x .github/scripts/test-gem-install.sh
           .github/scripts/test-gem-install.sh pkg
 
   publish:
     name: Publish to RubyGems
-    needs: [build_source, build_native]
+    needs: [build_source, build_native, test_native]
     runs-on: ubuntu-latest
     environment:
       name: production
