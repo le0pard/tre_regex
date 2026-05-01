@@ -194,12 +194,12 @@ jobs:
           EOF
           git config --local credential.helper 'cache --timeout=300'
 
-      - name: Configure trusted publishing credentials
-        uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
+      # - name: Configure trusted publishing credentials
+      #   uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
 
-      - name: Publish gems 🚀
-        run: |
-          for gem_file in pkg/*.gem; do
-            echo "Pushing $gem_file..."
-            gem push "$gem_file"
-          done
+      # - name: Publish gems 🚀
+      #   run: |
+      #     for gem_file in pkg/*.gem; do
+      #       echo "Pushing $gem_file..."
+      #       gem push "$gem_file"
+      #     done

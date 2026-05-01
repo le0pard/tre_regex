@@ -18,7 +18,13 @@ build_env = {
 }
 
 # Embed standard C libraries directly into the DLL on Windows so it doesn't crash on bare machines
-build_env['LDFLAGS'] = "#{build_env['LDFLAGS']} -static-libgcc -static-libstdc++" if is_windows
+if is_windows
+  # append static flags directly to CC! Libtool doesn't strip flags from the CC variable.
+  build_env['CC'] = "#{build_env['CC']} -static-libgcc -static-libstdc++"
+
+  # force MinGW to statically link the hidden winpthread dependency
+  build_env['LDFLAGS'] = "#{build_env['LDFLAGS']} -Wl,-Bstatic -lpthread -Wl,-Bdynamic"
+end
 
 gnu_host = RbConfig::CONFIG['host_alias']
 gnu_host = RbConfig::CONFIG['host'] if gnu_host.nil? || gnu_host.empty?
