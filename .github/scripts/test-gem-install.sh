@@ -24,7 +24,7 @@ popd
 
 # Install RSpec globally. We CANNOT use Bundler because evaluating
 # the local gemspec requires the `lib/` directory to exist!
-gem install rspec
+gem install rspec simplecov
 
 # delete local source files to guarantee Ruby uses the installed binary gem!
 rm -rf lib ext Gemfile Gemfile.lock
