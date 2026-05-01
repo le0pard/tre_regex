@@ -88,8 +88,8 @@ regex = TreRegex::Regex.new('cat')
 regex.match_all('cat, cot, cut', max_errors: 1).to_a
 # => [
 #   {match: "cat", submatches: [], index: 0, end_index: 3, cost: 0, errors: {insertions: 0, deletions: 0, substitutions: 0}},
-#  {match: "cot", submatches: [], index: 5, end_index: 8, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
-#  {match: "cut", submatches: [], index: 10, end_index: 13, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}}
+#   {match: "cot", submatches: [], index: 5, end_index: 8, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}},
+#   {match: "cut", submatches: [], index: 10, end_index: 13, cost: 1, errors: {insertions: 0, deletions: 0, substitutions: 1}}
 #    ]
 ```
 
