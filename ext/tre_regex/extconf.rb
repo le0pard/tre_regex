@@ -7,12 +7,20 @@ require 'net/http'
 require 'fileutils'
 require 'digest'
 
+is_windows = RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
+is_darwin  = RbConfig::CONFIG['host_os'].include?('darwin')
+
 build_env = {
   'CC' => RbConfig::CONFIG['CC'],
   'CFLAGS' => RbConfig::CONFIG['CFLAGS'],
   'CPPFLAGS' => RbConfig::CONFIG['CPPFLAGS'],
   'LDFLAGS' => RbConfig::CONFIG['LDFLAGS']
 }
+
+# Embed standard C libraries directly into the DLL on Windows so it doesn't crash on bare machines
+if is_windows
+  build_env['LDFLAGS'] = "#{build_env['LDFLAGS']} -static-libgcc -static-libstdc++"
+end
 
 gnu_host = RbConfig::CONFIG['host_alias']
 gnu_host = RbConfig::CONFIG['host'] if gnu_host.nil? || gnu_host.empty?
@@ -22,9 +30,6 @@ gnu_host = gnu_host.sub('arm64', 'aarch64').sub(/^x64/, 'x86_64')
 
 # Pass the translated, safe name to configure
 host_flag = "--host=#{gnu_host}"
-
-is_windows = RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
-is_darwin  = RbConfig::CONFIG['host_os'].include?('darwin')
 
 root_dir = File.expand_path(__dir__)
 root_dir = File.dirname(root_dir) until Dir.exist?(File.join(root_dir, 'lib')) || root_dir == '/'
