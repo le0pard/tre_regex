@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = 'A fast Ruby FFI wrapper for the TRE approximate regex matching library'
   spec.description = [
-    'TreRegex provides a high-performance Ruby interface to the TRE C library using FFI.',
+    'TreRegex provides a high-performance Ruby interface to the TRE C library.',
     'It brings robust approximate (fuzzy) regular expression matching to Ruby, featuring',
     'multi-byte Unicode string safety, and granular error limits'
   ].join(' ')
