@@ -178,6 +178,67 @@ RSpec.describe TreRegex do
       end
     end
 
+    describe 'Capture Groups (Submatches)' do
+      it 'extracts a single capture group', :aggregate_failures do
+        regex = described_class.new('I love (ruby|python)')
+        result = regex.exec('I love ruby a lot')
+
+        expect(result).not_to be_nil
+        expect(result[:submatches]).to eq(['ruby'])
+      end
+
+      it 'extracts multiple capture groups in order', :aggregate_failures do
+        regex = described_class.new('(\w+)\s+(\w+)')
+        result = regex.exec('hello world')
+
+        expect(result).not_to be_nil
+        expect(result[:submatches].size).to eq(2)
+        expect(result[:submatches]).to eq(%w[hello world])
+      end
+
+      it 'returns an empty array when no capture groups are defined', :aggregate_failures do
+        regex = described_class.new('just a string')
+        result = regex.exec('just a string')
+
+        expect(result).not_to be_nil
+        expect(result[:submatches]).to eq([])
+      end
+
+      it 'extracts capture groups accurately during a fuzzy match', :aggregate_failures do
+        # 'aple' is matched within the capture group despite 1 deletion
+        regex = described_class.new('I ate an (apple)')
+        result = regex.exec('I ate an aple', max_errors: 1)
+
+        expect(result).not_to be_nil
+        expect(result[:match]).to eq('I ate an aple')
+        expect(result[:submatches]).to eq(['aple'])
+      end
+
+      it 'inserts nil for optional capture groups that do not match', :aggregate_failures do
+        # The first group (cat) is optional and won't match, the second group (dog) will
+        regex = described_class.new('(cat)?(dog)')
+        result = regex.exec('dog')
+
+        expect(result).not_to be_nil
+        expect(result[:submatches]).to eq([nil, 'dog'])
+      end
+
+      it 'safely ignores capture groups beyond the allocated FFI array limit', :aggregate_failures do
+        # If we allocated 10 slots (1 full match + 9 groups), it should safely process the first 9
+        # and ignore the 10th without crashing.
+        pattern = (1..10).map { |i| "(#{i})" }.join('-')
+        regex = described_class.new(pattern)
+
+        target = (1..10).to_a.join('-')
+        result = regex.exec(target)
+
+        expect(result).not_to be_nil
+        # It should cap out at 9 submatches based on our nmatch = 10 allocation
+        expect(result[:submatches].size).to eq(9)
+        expect(result[:submatches]).to eq(%w[1 2 3 4 5 6 7 8 9])
+      end
+    end
+
     describe 'Option Sanitization' do
       it 'ignores unknown options and safely defaults to exact matching' do
         regex = described_class.new('apple')

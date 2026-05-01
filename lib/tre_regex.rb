@@ -5,6 +5,8 @@ require 'rbconfig'
 require_relative 'tre_regex/version'
 
 module TreRegex
+  MAX_NMATCH = 10 # 1 full match + 9 capture groups = 10 slots
+
   class Error < StandardError; end
 
   # The FFI Native Bridge
@@ -142,14 +144,16 @@ module TreRegex
 
     def execute_match(text_ptr, len, options)
       params = build_params(options)
-      pmatch = FFI::MemoryPointer.new(Native::RegMatch)
-      match_data = prepare_match_data(pmatch)
+
+      # Allocate a continuous block of memory for 10 RegMatch structs
+      pmatch_array = FFI::MemoryPointer.new(Native::RegMatch, MAX_NMATCH)
+      match_data = prepare_match_data(pmatch_array, MAX_NMATCH)
 
       res = Native.tre_reganexec(@preg, text_ptr, len, match_data, params, 0)
       return nil unless res.zero?
 
-      rm = Native::RegMatch.new(pmatch)
-      [rm[:rm_so], rm[:rm_eo], match_data]
+      # Return the entire array pointer to be parsed
+      [pmatch_array, MAX_NMATCH, match_data]
     end
 
     def build_params(opts)
@@ -181,28 +185,51 @@ module TreRegex
       params[:cost_subst] = opts[:weight_substitution] if opts.key?(:weight_substitution)
     end
 
-    def prepare_match_data(pmatch)
+    def prepare_match_data(pmatch_array, nmatch)
       Native::RegAMatch.new.tap do |m|
-        m[:nmatch] = 1
-        m[:pmatch] = pmatch
+        m[:nmatch] = nmatch # Tell TRE we have space for 10 matches
+        m[:pmatch] = pmatch_array
       end
     end
 
     def extract_match_payload(text, byte_off, char_off, m_info)
-      rm_so, rm_eo, match_data = m_info
+      pmatch_array, nmatch, match_data = m_info
+
+      # Read the full match boundaries from index 0
+      full_rm = Native::RegMatch.new(pmatch_array)
+      rm_so = full_rm[:rm_so]
+      rm_eo = full_rm[:rm_eo]
+
       prefix_len = (text.byteslice(byte_off, rm_so) || '').length
       match_str = text.byteslice((byte_off + rm_so)...(byte_off + rm_eo))
 
       payload = {
         match: match_str,
+        submatches: extract_submatches(text, byte_off, pmatch_array, nmatch),
         index: char_off + prefix_len,
         end_index: char_off + prefix_len + match_str.length,
         cost: match_data[:cost],
         errors: parse_errors(match_data)
       }
 
-      # Return the payload AND the advancement cursors
       [payload, rm_eo, prefix_len + match_str.length]
+    end
+
+    def extract_submatches(text, byte_off, pmatch_array, nmatch)
+      submatches = (1...nmatch).map do |i|
+        # Advance the memory pointer by the size of the struct for each index
+        rm = Native::RegMatch.new(pmatch_array + (i * Native::RegMatch.size))
+        sub_so = rm[:rm_so]
+        sub_eo = rm[:rm_eo]
+
+        # Safely extract the group, inserting nil if it was optional and unmatched
+        sub_so == -1 ? nil : text.byteslice((byte_off + sub_so)...(byte_off + sub_eo))
+      end
+
+      # Cleanup: Remove trailing nil values (unused capture groups)
+      submatches.pop while submatches.last.nil? && !submatches.empty?
+
+      submatches
     end
 
     def parse_errors(match_data)
