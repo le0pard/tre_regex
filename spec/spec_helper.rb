@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
-require 'simplecov'
-SimpleCov.start do
-  add_filter '/spec/'
+begin
+  require 'simplecov'
+  SimpleCov.start do
+    add_filter '/spec/'
+  end
+rescue LoadError
+  # ignore
 end
 
 require 'tre_regex'
