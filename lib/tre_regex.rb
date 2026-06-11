@@ -199,43 +199,71 @@ module TreRegex
       end
     end
 
+    # Helper to safely align TRE's raw byte offsets to valid UTF-8 boundaries
+    def align_bounds(text, absolute_so, absolute_eo)
+      safe_so = absolute_so.clamp(0, text.bytesize)
+
+      # Shift start backward to the nearest valid character boundary
+      # (byte & 0xC0) == 0x80 checks if the byte is a UTF-8 continuation byte
+      safe_so -= 1 while safe_so.positive? && (text.getbyte(safe_so) & 0xC0) == 0x80
+
+      safe_eo = absolute_eo.clamp(0, text.bytesize)
+
+      # Shift end forward to the nearest valid character boundary
+      safe_eo += 1 while safe_eo < text.bytesize && (text.getbyte(safe_eo) & 0xC0) == 0x80
+
+      safe_so = safe_eo if safe_so > safe_eo
+
+      [safe_so, safe_eo]
+    end
+
     def extract_match_payload(text, byte_off, char_off, m_info)
       pmatch_array, nmatch, match_data = m_info
+      abs_so, abs_eo = primary_match_bounds(text, byte_off, pmatch_array)
 
-      # Read the full match boundaries from index 0
+      match_str = text.byteslice(abs_so...abs_eo) || ''
+      start_index = char_off + (text.byteslice(byte_off...abs_so) || '').length
+
+      payload = format_payload(
+        match_str, start_index, match_data,
+        extract_submatches(text, byte_off, pmatch_array, nmatch)
+      )
+
+      [payload, abs_eo - byte_off, start_index - char_off + match_str.length]
+    end
+
+    def primary_match_bounds(text, byte_off, pmatch_array)
       full_rm = Native::RegMatch.new(pmatch_array)
-      rm_so = full_rm[:rm_so]
-      rm_eo = full_rm[:rm_eo]
+      align_bounds(text, byte_off + full_rm[:rm_so], byte_off + full_rm[:rm_eo])
+    end
 
-      prefix_len = (text.byteslice(byte_off, rm_so) || '').length
-      match_str = text.byteslice((byte_off + rm_so)...(byte_off + rm_eo))
-
-      payload = {
+    def format_payload(match_str, start_index, match_data, submatches)
+      {
         match: match_str,
-        submatches: extract_submatches(text, byte_off, pmatch_array, nmatch),
-        index: char_off + prefix_len,
-        end_index: char_off + prefix_len + match_str.length,
+        submatches:,
+        index: start_index,
+        end_index: start_index + match_str.length,
         cost: match_data[:cost],
         errors: parse_errors(match_data)
       }
-
-      [payload, rm_eo, prefix_len + match_str.length]
     end
 
     def extract_submatches(text, byte_off, pmatch_array, nmatch)
       submatches = (1...nmatch).map do |i|
         # Advance the memory pointer by the size of the struct for each index
         rm = Native::RegMatch.new(pmatch_array + (i * Native::RegMatch.size))
-        sub_so = rm[:rm_so]
-        sub_eo = rm[:rm_eo]
+        raw_so = rm[:rm_so]
+        raw_eo = rm[:rm_eo]
 
-        # Safely extract the group, inserting nil if it was optional and unmatched
-        sub_so == -1 ? nil : text.byteslice((byte_off + sub_so)...(byte_off + sub_eo))
+        if raw_so == -1 || raw_so > raw_eo
+          nil
+        else
+          abs_so, abs_eo = align_bounds(text, byte_off + raw_so, byte_off + raw_eo)
+          text.byteslice(abs_so...abs_eo)
+        end
       end
 
-      # Cleanup: Remove trailing nil values (unused capture groups)
       submatches.pop while submatches.last.nil? && !submatches.empty?
-
       submatches
     end
 

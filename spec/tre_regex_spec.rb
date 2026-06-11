@@ -178,6 +178,31 @@ RSpec.describe TreRegex do
       end
     end
 
+    describe 'UTF-8 Boundary Safety' do
+      let(:regex_test) { described_class.new('test') }
+      let(:regex_cat) { described_class.new('cat') }
+
+      it 'avoids silent encoding corruption when fuzzy matching splits multi-byte characters', :aggregate_failures do
+        # Force TRE to match partial bytes inside emojis or Kanji
+        results1 = regex_test.match_all('tes👨‍👩‍👧‍👦', max_errors: 3).to_a
+        results2 = regex_test.match_all('こんにちはtest', max_errors: 4).to_a
+
+        expect(results1).not_to be_empty
+        expect(results1.last[:match].valid_encoding?).to be true
+
+        expect(results2).not_to be_empty
+        expect(results2.last[:match].valid_encoding?).to be true
+      end
+
+      it 'correctly advances past split characters without losing sync or corrupting strings', :aggregate_failures do
+        results = regex_cat.match_all('ca🌟 dog cat', max_errors: 2).to_a
+
+        expect(results).not_to be_empty
+        expect(results.last[:match]).to eq('cat')
+        expect(results.last[:match].valid_encoding?).to be true
+      end
+    end
+
     describe 'Capture Groups (Submatches)' do
       it 'extracts a single capture group', :aggregate_failures do
         regex = described_class.new('I love (ruby|python)')
