@@ -298,6 +298,23 @@ result = regex.exec(target, max_errors: 1)
 target[result[:index]...result[:end_index]]
 ```
 
+#### Partial Multi-byte Character Matching
+
+Because the underlying TRE engine operates on raw bytes, a fuzzy match might logically "delete" or "substitute" individual bytes *inside* a multi-byte UTF-8 character (like an emoji or Kanji character). In standard Ruby, slicing a string at an invalid byte offset results in a corrupted string where `.valid_encoding?` returns `false`.
+
+To prevent returning broken strings, `TreRegex` automatically detects if a match boundary splits a multi-byte sequence. It safely expands the match boundary outward to encapsulate the entire valid character, guaranteeing that your data remains uncorrupted.
+
+```ruby
+regex = TreRegex::Regex.new('test')
+
+# The engine might logically match partial bytes inside the 4-byte apple emoji,
+# but the wrapper safely expands the match to include the whole valid codepoint.
+result = regex.exec('tes🍎', max_errors: 3)
+
+result[:match] # => "tes🍎"
+result[:match].valid_encoding? # => true
+```
+
 ### Overlapping Matches in `match_all`
 
 When using `match_all`, be aware that the engine consumes the string as it matches. By default, standard regex engines (including TRE) do not return overlapping matches.
